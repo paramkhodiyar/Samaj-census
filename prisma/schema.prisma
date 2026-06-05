@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  GHATAK_ADMIN
+  PRADESHIK_ADMIN
+  SUPER_ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CORRECTION_REQUIRED
+}
+
+enum RequestType {
+  ADD_MEMBER
+  REMOVE_MEMBER
+  TRANSFER_MEMBER
+  EDIT_INFO
+  OTHER
+}
+
+model Pradeshik {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  ghataks   Ghatak[]
+  families  Family[]
+  users     User[]
+}
+
+model Ghatak {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  code        String    @unique
+  pradeshikId String
+  pradeshik   Pradeshik @relation(fields: [pradeshikId], references: [id])
+  families    Family[]
+  users       User[]
+}
+
+model Family {
+  id               String          @id @default(uuid())
+  familyId         String          @unique // e.g., KG-2026-00123
+  headName         String
+  pradeshikId      String
+  pradeshik        Pradeshik       @relation(fields: [pradeshikId], references: [id])
+  ghatakId         String
+  ghatak           Ghatak          @relation(fields: [ghatakId], references: [id])
+  mobile           String          // Primary contact mobile number
+  address          String?
+  nativeVillage    String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  members          Member[]
+  updateRequests   UpdateRequest[]
+  users            User[]
+}
+
+model Member {
+  id            String   @id @default(uuid())
+  familyId      String
+  family        Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  photoUrl      String?
+  name          String
+  relation      String   // Relation to Head: Head, Wife, Son, Daughter, Father, Mother, Brother, Sister, etc.
+  age           Int
+  occupation    String
+  education     String
+  bloodGroup    String
+  mobile        String?
+  email         String?
+  gender        Gender
+  maritalStatus String?
+  isAlive       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model User {
+  id           String        @id @default(uuid())
+  mobileNumber String        @unique
+  passwordHash String
+  role         Role          @default(USER)
+  isVerified   Boolean       @default(false)
+  familyId     String?       @unique
+  family       Family?       @relation(fields: [familyId], references: [id])
+  ghatakId     String?
+  ghatak       Ghatak?       @relation(fields: [ghatakId], references: [id])
+  pradeshikId  String?
+  pradeshik    Pradeshik?    @relation(fields: [pradeshikId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  auditLogs    AuditLog[]
+  requests     UpdateRequest[]
+  notifications Notification[]
+}
+
+model VerificationCode {
+  id           String   @id @default(uuid())
+  mobileNumber String
+  code         String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model UpdateRequest {
+  id          String        @id @default(uuid())
+  familyId    String
+  family      Family        @relation(fields: [familyId], references: [id])
+  requesterId String
+  requester   User          @relation(fields: [requesterId], references: [id])
+  type        RequestType
+  status      RequestStatus @default(PENDING)
+  comments    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  changes     RequestChange[]
+  documents   Document[]
+}
+
+model RequestChange {
+  id        String        @id @default(uuid())
+  requestId String
+  request   UpdateRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  action    String        // UPDATE_FIELD, ADD_MEMBER, REMOVE_MEMBER, TRANSFER_MEMBER
+  tableName String        // Family, Member
+  recordId  String?       // ID of member being updated or removed
+  fieldName String?       // Field name being updated
+  oldValue  String?       // JSON representation of old value
+  newValue  String?       // JSON representation of new value
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String   // LOGIN, REGISTER, SUBMIT_REQUEST, APPROVE_REQUEST, REJECT_REQUEST, UPDATE_PASSWORD, etc.
+  description String
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}
+
+model Document {
+  id         String         @id @default(uuid())
+  requestId  String?
+  request    UpdateRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  familyId   String?
+  name       String
+  fileUrl    String
+  uploadedAt DateTime       @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
