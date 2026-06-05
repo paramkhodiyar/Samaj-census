@@ -1,26 +1,48 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev-only';
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret';
+const JWT_SECRET_STR = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-32-chars-long';
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STR);
 
 export interface TokenPayload {
   userId: string;
   role: string;
-  email: string;
+  mobileNumber: string;
 }
 
-export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
+export async function signToken(payload: TokenPayload): Promise<string> {
+  // jose SignJWT expects an object and returns a promise
+  return new SignJWT({ 
+    userId: payload.userId,
+    role: payload.role,
+    mobileNumber: payload.mobileNumber
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1d')
+    .sign(JWT_SECRET);
 }
 
-export function signRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+export async function signRefreshToken(payload: TokenPayload): Promise<string> {
+  return new SignJWT({ 
+    userId: payload.userId,
+    role: payload.role,
+    mobileNumber: payload.mobileNumber
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(JWT_SECRET);
 }
 
-export function verifyToken(token: string): TokenPayload | null {
+export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return {
+      userId: payload.userId as string,
+      role: payload.role as string,
+      mobileNumber: payload.mobileNumber as string,
+    };
   } catch (error) {
     return null;
   }

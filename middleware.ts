@@ -7,8 +7,8 @@ const publicRoutes = ['/login', '/register', '/api/auth/verify'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  // Skip public routes and root path (splash screen)
+  if (pathname === '/' || publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
   if (!payload) {
     // Potentially try refresh token here in a more advanced implementation
     return NextResponse.redirect(new URL('/login', request.url));

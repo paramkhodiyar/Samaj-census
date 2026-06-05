@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { I18nProvider } from "@/context/I18nContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "Samaj | Enterprise Community Registry",
-  description: "Secure digital census and family registry platform.",
+  title: "Digital Family Record Portal | Samaj Census",
+  description: "Official census registry and verification portal for Shri Kutch Gurjar Kshatriya Samaj Mahasabha.",
 };
 
 export default function RootLayout({
@@ -17,10 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-black text-white`}>
-        {children}
-        <Toaster position="top-right" theme="dark" />
+    <html lang="en">
+      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`}>
+        <I18nProvider>
+          {children}
+          <Toaster position="top-right" theme="light" />
+        </I18nProvider>
       </body>
     </html>
   );
