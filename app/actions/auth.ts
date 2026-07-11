@@ -19,23 +19,55 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(6, 'Password confirmation is required'),
 });
 
-// Helper: Send WhatsApp OTP using Meta Cloud API
+// Helper: Send WhatsApp OTP (Supports Twilio & Meta Cloud API)
 async function sendWhatsAppOTP(mobileNumber: string, code: string) {
+  const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+  const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+  const twilioFrom = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
+
+  let cleanPhone = mobileNumber.replace(/[^0-9]/g, '');
+  if (cleanPhone.length === 10) {
+    cleanPhone = '91' + cleanPhone;
+  }
+
+  // 1. Try Twilio if credentials are provided
+  if (twilioSid && twilioAuthToken) {
+    try {
+      const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+      const auth = Buffer.from(`${twilioSid}:${twilioAuthToken}`).toString('base64');
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: `whatsapp:+${cleanPhone}`,
+          From: twilioFrom,
+          Body: `Your Shri Kutch Gurjar Kshatriya Samaj Census Portal OTP is: ${code}\n\nValid for 10 minutes. Please do not share this code.`,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('[OTP SERVICE] Twilio WhatsApp API response:', data);
+      return;
+    } catch (error) {
+      console.error('[OTP SERVICE] Twilio failed:', error);
+    }
+  }
+
+  // 2. Fall back to Meta Cloud API
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const templateName = process.env.WHATSAPP_TEMPLATE_NAME || 'auth_otp';
 
   if (!token || !phoneNumberId) {
-    console.log(`[OTP SERVICE] Meta WhatsApp credentials not configured.`);
+    console.log(`[OTP SERVICE] No Meta or Twilio WhatsApp credentials configured.`);
     return;
   }
 
   try {
-    // Clean formatting (keep digits only, e.g. 254735319243 or 919876543210)
-    let cleanPhone = mobileNumber.replace(/[^0-9]/g, '');
-    if (cleanPhone.length === 10) {
-      cleanPhone = '91' + cleanPhone;
-    }
     const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
     
     // Build payload dynamically based on template type

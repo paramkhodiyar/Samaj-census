@@ -21,7 +21,7 @@ export default async function RequestsPage() {
     redirect('/login');
   }
 
-  const isAdmin = ['SUPER_ADMIN', 'PRADESHIK_ADMIN', 'GHATAK_ADMIN'].includes(user.role);
+  const isAdmin = ['SUPER_ADMIN', 'PRADESHIK_ADMIN', 'GHATAK_ADMIN', 'NRI_ADMIN'].includes(user.role);
 
   // Fetch requests based on role
   let requests = [];
