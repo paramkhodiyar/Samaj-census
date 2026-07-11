@@ -32,7 +32,10 @@ async function sendWhatsAppOTP(mobileNumber: string, code: string) {
 
   try {
     // Clean formatting (keep digits only, e.g. 254735319243 or 919876543210)
-    const cleanPhone = mobileNumber.replace(/[^0-9]/g, '');
+    let cleanPhone = mobileNumber.replace(/[^0-9]/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
+    }
     const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
     
     // Build payload dynamically based on template type

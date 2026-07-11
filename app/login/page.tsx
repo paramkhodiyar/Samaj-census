@@ -122,7 +122,7 @@ export default function LoginPage() {
             <p className="text-sm text-[#6A5B4D] mt-1">{t('loginSubtitle')}</p>
           </div>
 
-          {mobileStatus === 'IDLE' ? (
+          {mobileStatus === 'IDLE' || mobileStatus === 'ACTIVE' ? (
             <>
               {/* Toggle Buttons */}
               <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-[#FAF7F2] rounded-md border border-[#E5DDD0]">
