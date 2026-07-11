@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 import Link from 'next/link';
+import ExportNriCsvButton from '@/components/ExportNriCsvButton';
 import { redirect } from 'next/navigation';
 import { 
   Users, 
@@ -372,13 +373,18 @@ export default async function DashboardOverview() {
     return (
       <div className="space-y-6">
         {/* Admin Header */}
-        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm">
-          <h1 className="text-xl font-serif font-bold text-[#8B5E3C] md:text-2xl">
-            NRI Admin Portal
-          </h1>
-          <p className="text-sm text-[#6A5B4D] mt-1">
-            Manage global family enrollment requests, record updates, and census audits.
-          </p>
+        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-serif font-bold text-[#8B5E3C] md:text-2xl">
+              NRI Admin Portal
+            </h1>
+            <p className="text-sm text-[#6A5B4D] mt-1">
+              Manage global family enrollment requests, record updates, and census audits.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <ExportNriCsvButton />
+          </div>
         </div>
 
         {/* Stats Grid */}

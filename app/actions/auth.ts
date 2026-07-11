@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { clearAuthCookies, setAuthCookies, signRefreshToken, signToken } from '@/lib/auth';
+import { clearAuthCookies, getAuthSession, setAuthCookies, signRefreshToken, signToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
@@ -662,4 +662,98 @@ export async function checkMobileNumberAction(mobileNumber: string) {
     console.error('Check mobile error:', error);
     return { error: 'Failed to verify mobile number.' };
   }
+}
+
+// Action: Export NRI Families to CSV
+export async function exportNriFamiliesAction() {
+  const session = await getAuthSession();
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+
+  // Load User and role
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== 'NRI_ADMIN') {
+    throw new Error('Unauthorized');
+  }
+
+  // Fetch only NRI families (familyId starts with 'KG-NRI-')
+  const families = await prisma.family.findMany({
+    where: { familyId: { startsWith: 'KG-NRI-' } },
+    include: { members: true },
+  });
+
+  // Find the maximum number of other relatives in any single family
+  let maxRelatives = 0;
+  for (const family of families) {
+    const relativeCount = family.members.filter(m => 
+      m.relation !== 'Head' && 
+      !['Wife', 'Husband', 'Spouse'].includes(m.relation)
+    ).length;
+    if (relativeCount > maxRelatives) {
+      maxRelatives = relativeCount;
+    }
+  }
+
+  // Define static headers
+  const headers = [
+    'Family ID', 'Country', 'City', 'Kutch Village',
+    'Head Name', 'Head Relation', 'Head Mobile', 'Head Profession',
+    'Spouse Name', 'Spouse Relation', 'Spouse Mobile', 'Spouse Profession'
+  ];
+
+  // Append dynamic relative columns
+  for (let i = 1; i <= maxRelatives; i++) {
+    headers.push(
+      `Relative ${i} Name`,
+      `Relative ${i} Relation`,
+      `Relative ${i} Mobile`,
+      `Relative ${i} Profession`
+    );
+  }
+
+  const csvRows = [headers.join(',')];
+
+  for (const family of families) {
+    const head = family.members.find(m => m.relation === 'Head');
+    const spouse = family.members.find(m => 
+      ['Wife', 'Husband', 'Spouse'].includes(m.relation)
+    );
+    const relatives = family.members
+      .filter(m => m !== head && m !== spouse)
+      .sort((a, b) => b.age - a.age);
+
+    const row = [
+      `"${family.familyId}"`,
+      `"${family.country || 'N/A'}"`,
+      `"${family.city || 'N/A'}"`,
+      `"${family.kutchVillage || 'N/A'}"`,
+      `"${head?.name || family.headName}"`,
+      `"${head?.relation || 'Head'}"`,
+      `"${head?.mobile || family.mobile}"`,
+      `"${head?.occupation || 'N/A'}"`,
+      `"${spouse?.name || ''}"`,
+      `"${spouse?.relation || ''}"`,
+      `"${spouse?.mobile || ''}"`,
+      `"${spouse?.occupation || ''}"`
+    ];
+
+    for (let i = 0; i < maxRelatives; i++) {
+      const rel = relatives[i];
+      row.push(
+        `"${rel?.name || ''}"`,
+        `"${rel?.relation || ''}"`,
+        `"${rel?.mobile || ''}"`,
+        `"${rel?.occupation || ''}"`
+      );
+    }
+
+    csvRows.push(row.join(','));
+  }
+
+  return csvRows.join('\n');
 }
