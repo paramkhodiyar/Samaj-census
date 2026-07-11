@@ -13,7 +13,6 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  familyId: z.string().min(1, 'Family ID is required'),
   mobileNumber: z.string().min(10, 'Mobile number is required'),
   otp: z.string().min(6, 'OTP must be 6 digits'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -40,50 +39,51 @@ async function generateAndSaveOTP(mobileNumber: string) {
   return code;
 }
 
-// Action: Send OTP (used for both Register and Login-via-OTP)
-export async function sendOtpAction(mobileNumber: string, familyId?: string) {
+export async function sendOtpAction(mobileNumber: string) {
   if (!mobileNumber) {
     return { error: 'Mobile number is required' };
   }
 
   try {
-    // 1. If registering (familyId is provided), verify against Census Record
-    if (familyId) {
-      // Find a family matching the familyId
-      const family = await prisma.family.findUnique({
-        where: { familyId },
-        include: { members: true },
-      });
+    const user = await prisma.user.findUnique({
+      where: { mobileNumber },
+    });
 
-      if (!family) {
-        return { error: 'Family ID not found in census database' };
+    if (!user) {
+      // User not registered. Check if they are in the census as head
+      const isHead =
+        (await prisma.family.findFirst({
+          where: { mobile: mobileNumber },
+        })) ||
+        (await prisma.member.findFirst({
+          where: { mobile: mobileNumber, relation: 'Head' },
+        }));
+
+      if (!isHead) {
+        const isMember = await prisma.member.findFirst({
+          where: { mobile: mobileNumber },
+        });
+
+        if (isMember) {
+          return { error: 'BLOCKED_NON_HEAD' };
+        }
+
+        return { error: 'UNREGISTERED' };
       }
+    }
 
-      // Check if family mobile matches OR any member's mobile matches
-      const isMobileMatch =
-        family.mobile === mobileNumber ||
-        family.members.some(member => member.mobile === mobileNumber);
+    // Make sure registered users with role 'USER' are indeed heads
+    if (user && user.role === 'USER') {
+      const isHead =
+        (await prisma.family.findFirst({
+          where: { mobile: mobileNumber },
+        })) ||
+        (await prisma.member.findFirst({
+          where: { mobile: mobileNumber, relation: 'Head' },
+        }));
 
-      if (!isMobileMatch) {
-        return { error: 'Mobile number does not match this Family ID records' };
-      }
-
-      // Check if user account is already created
-      const existingUser = await prisma.user.findUnique({
-        where: { mobileNumber },
-      });
-
-      if (existingUser && existingUser.passwordHash) {
-        return { error: 'This mobile number is already registered. Please login.' };
-      }
-    } else {
-      // 2. If logging in via OTP (familyId is not provided), verify user exists
-      const user = await prisma.user.findUnique({
-        where: { mobileNumber },
-      });
-
-      if (!user) {
-        return { error: 'Mobile number not registered. Please register first.' };
+      if (!isHead) {
+        return { error: 'BLOCKED_NON_HEAD' };
       }
     }
 
@@ -101,6 +101,10 @@ export async function loginAction(prevState: any, formData: FormData) {
   const mobileNumber = formData.get('mobileNumber') as string;
   const password = formData.get('password') as string;
 
+  if (!mobileNumber || !password) {
+    return { error: 'Mobile number and password are required' };
+  }
+
   const result = loginSchema.safeParse({ mobileNumber, password });
   if (!result.success) {
     return { error: result.error.issues[0].message };
@@ -112,7 +116,43 @@ export async function loginAction(prevState: any, formData: FormData) {
     });
 
     if (!user) {
-      return { error: 'Invalid mobile number or password' };
+      // Check census database to give detailed UX advice
+      const isHead =
+        (await prisma.family.findFirst({
+          where: { mobile: mobileNumber },
+        })) ||
+        (await prisma.member.findFirst({
+          where: { mobile: mobileNumber, relation: 'Head' },
+        }));
+
+      if (isHead) {
+        return { error: 'NOT_ACTIVATED' };
+      }
+
+      const isMember = await prisma.member.findFirst({
+        where: { mobile: mobileNumber },
+      });
+
+      if (isMember) {
+        return { error: 'BLOCKED_NON_HEAD' };
+      }
+
+      return { error: 'UNREGISTERED' };
+    }
+
+    // Verify role constraint
+    if (user.role === 'USER') {
+      const isHead =
+        (await prisma.family.findFirst({
+          where: { mobile: mobileNumber },
+        })) ||
+        (await prisma.member.findFirst({
+          where: { mobile: mobileNumber, relation: 'Head' },
+        }));
+
+      if (!isHead) {
+        return { error: 'BLOCKED_NON_HEAD' };
+      }
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
@@ -158,27 +198,98 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
   }
 
   try {
-    // Verify user exists
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { mobileNumber },
     });
 
     if (!user) {
-      return { error: 'Mobile number not registered' };
-    }
+      const isHead =
+        (await prisma.family.findFirst({
+          where: { mobile: mobileNumber },
+        })) ||
+        (await prisma.member.findFirst({
+          where: { mobile: mobileNumber, relation: 'Head' },
+        }));
 
-    // Verify OTP
-    const verification = await prisma.verificationCode.findFirst({
-      where: {
-        mobileNumber,
-        code: otp,
-        expiresAt: { gte: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+      if (!isHead) {
+        const isMember = await prisma.member.findFirst({
+          where: { mobile: mobileNumber },
+        });
 
-    if (!verification) {
-      return { error: 'Invalid or expired OTP' };
+        if (isMember) {
+          return { error: 'BLOCKED_NON_HEAD' };
+        }
+
+        return { error: 'UNREGISTERED' };
+      }
+
+      // Auto-activate: Find the pre-existing family
+      const family = await prisma.family.findFirst({
+        where: {
+          OR: [
+            { mobile: mobileNumber },
+            { members: { some: { mobile: mobileNumber, relation: 'Head' } } }
+          ]
+        }
+      });
+
+      if (!family) {
+        return { error: 'Census family records not found' };
+      }
+
+      // Verify OTP first before creating the user
+      const verification = await prisma.verificationCode.findFirst({
+        where: {
+          mobileNumber,
+          code: otp,
+          expiresAt: { gte: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!verification) {
+        return { error: 'Invalid or expired OTP' };
+      }
+
+      // Create new active User account
+      user = await prisma.user.create({
+        data: {
+          mobileNumber,
+          familyId: family.id,
+          role: 'USER',
+          isVerified: true,
+          passwordHash: '',
+        }
+      });
+    } else {
+      // Verify role constraint for existing user
+      if (user.role === 'USER') {
+        const isHead =
+          (await prisma.family.findFirst({
+            where: { mobile: mobileNumber },
+          })) ||
+          (await prisma.member.findFirst({
+            where: { mobile: mobileNumber, relation: 'Head' },
+          }));
+
+        if (!isHead) {
+          return { error: 'BLOCKED_NON_HEAD' };
+        }
+      }
+
+      // Verify OTP for existing user
+      const verification = await prisma.verificationCode.findFirst({
+        where: {
+          mobileNumber,
+          code: otp,
+          expiresAt: { gte: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!verification) {
+        return { error: 'Invalid or expired OTP' };
+      }
     }
 
     // Clean up OTP codes
@@ -216,14 +327,12 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
 
 // Action: Register User
 export async function registerAction(prevState: any, formData: FormData) {
-  const familyId = formData.get('familyId') as string;
   const mobileNumber = formData.get('mobileNumber') as string;
   const otp = formData.get('otp') as string;
   const password = formData.get('password') as string;
   const confirmPassword = formData.get('confirmPassword') as string;
 
   const result = registerSchema.safeParse({
-    familyId,
     mobileNumber,
     otp,
     password,
@@ -253,13 +362,32 @@ export async function registerAction(prevState: any, formData: FormData) {
       return { error: 'Invalid or expired OTP' };
     }
 
-    // 2. Fetch the pre-existing family
-    const family = await prisma.family.findUnique({
-      where: { familyId },
+    // 2. Fetch the pre-existing family matching this mobile number as Head
+    const family = await prisma.family.findFirst({
+      where: {
+        OR: [
+          { mobile: mobileNumber },
+          { members: { some: { mobile: mobileNumber, relation: 'Head' } } }
+        ]
+      },
+      include: { members: true },
     });
 
     if (!family) {
-      return { error: 'Family ID not found in census records' };
+      return { error: 'Family records not found in census records' };
+    }
+
+    // ONLY Family head is allowed to register
+    const isHead =
+      family.mobile === mobileNumber ||
+      family.members.some(member => member.mobile === mobileNumber && member.relation === 'Head');
+
+    if (!isHead) {
+      const isMember = family.members.some(member => member.mobile === mobileNumber);
+      if (isMember) {
+        return { error: 'BLOCKED_NON_HEAD' };
+      }
+      return { error: 'Mobile number does not match this family record' };
     }
 
     // Hash Password
@@ -304,7 +432,7 @@ export async function registerAction(prevState: any, formData: FormData) {
     await prisma.auditLog.create({
       data: {
         action: 'REGISTER',
-        description: `New user registered. Linked to Family ID: ${familyId}`,
+        description: `New user registered. Linked to Family ID: ${family.familyId}`,
         userId: user.id,
       },
     });
@@ -355,5 +483,59 @@ export async function changePasswordAction(prevState: any, formData: FormData) {
   } catch (error) {
     console.error('Change password error:', error);
     return { error: 'Failed to update password.' };
+  }
+}
+
+// Action: Check Mobile Number Status
+export async function checkMobileNumberAction(mobileNumber: string) {
+  if (!mobileNumber) return { error: 'Mobile number is required' };
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { mobileNumber },
+    });
+
+    if (user) {
+      if (user.role === 'USER') {
+        const isHead =
+          (await prisma.family.findFirst({
+            where: { mobile: mobileNumber },
+          })) ||
+          (await prisma.member.findFirst({
+            where: { mobile: mobileNumber, relation: 'Head' },
+          }));
+
+        if (!isHead) {
+          return { status: 'BLOCKED_NON_HEAD' };
+        }
+      }
+      return { status: 'ACTIVE' };
+    }
+
+    // User does not exist, check census database
+    const isHead =
+      (await prisma.family.findFirst({
+        where: { mobile: mobileNumber },
+      })) ||
+      (await prisma.member.findFirst({
+        where: { mobile: mobileNumber, relation: 'Head' },
+      }));
+
+    if (isHead) {
+      return { status: 'NOT_ACTIVATED' };
+    }
+
+    const isMember = await prisma.member.findFirst({
+      where: { mobile: mobileNumber },
+    });
+
+    if (isMember) {
+      return { status: 'BLOCKED_NON_HEAD' };
+    }
+
+    return { status: 'UNREGISTERED' };
+  } catch (error) {
+    console.error('Check mobile error:', error);
+    return { error: 'Failed to verify mobile number.' };
   }
 }

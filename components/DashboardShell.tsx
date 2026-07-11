@@ -22,14 +22,18 @@ export default function DashboardShell({ session, children }: DashboardShellProp
   const searchParams = useSearchParams();
   const { language, setLanguage, t } = useTranslation();
 
+  const toastShownRef = React.useRef(false);
+
   React.useEffect(() => {
     const authStatus = searchParams?.get('auth');
-    if (authStatus === 'login') {
+    if (authStatus === 'login' && !toastShownRef.current) {
+      toastShownRef.current = true;
       toast.success('Successfully logged in! Welcome back.');
       const url = new URL(window.location.href);
       url.searchParams.delete('auth');
       window.history.replaceState({}, '', url.pathname + url.search);
-    } else if (authStatus === 'register') {
+    } else if (authStatus === 'register' && !toastShownRef.current) {
+      toastShownRef.current = true;
       toast.success('Successfully registered! Welcome to the portal.');
       const url = new URL(window.location.href);
       url.searchParams.delete('auth');

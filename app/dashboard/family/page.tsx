@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import FamilyMembersView from './FamilyMembersView';
 import { useTranslation } from '@/context/I18nContext';
 import { 
   User, 
@@ -162,90 +163,7 @@ export default async function FamilyDetailsPage({
           Family Members ({family.members.length})
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sortedMembers.map((member) => (
-            <div
-              key={member.id}
-              className={`bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col justify-between ${
-                member.isAlive ? 'border-[#E5DDD0]' : 'border-red-200 opacity-75'
-              }`}
-            >
-              {/* Card top banner */}
-              <div className="p-4 bg-[#FAF7F2] border-b border-[#E5DDD0] flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  {/* Photo Frame */}
-                  <div className="w-10 h-10 rounded bg-white border border-[#E5DDD0] flex items-center justify-center text-[#8B5E3C] shrink-0">
-                    <User className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#2D2D2D]">{member.name}</h3>
-                    <p className="text-[10px] font-bold text-[#B08968] uppercase tracking-wider">
-                      {member.relation} {member.relation.toLowerCase() === 'head' ? 'of Family' : ''}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Alive Indicator Badge */}
-                {!member.isAlive && (
-                  <span className="text-[9px] px-2 py-0.5 rounded font-bold border bg-red-50 text-red-700 border-red-200 uppercase">
-                    Deceased
-                  </span>
-                )}
-              </div>
-
-              {/* Member detail grid */}
-              <div className="p-5 grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider block">Age & Gender</span>
-                  <span className="font-semibold text-[#2D2D2D] mt-0.5 block">
-                    {member.age} Yrs / {member.gender}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider block">Blood Group</span>
-                  <span className="font-semibold text-[#2D2D2D] mt-0.5 block flex items-center gap-1">
-                    <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
-                    {member.bloodGroup}
-                  </span>
-                </div>
-
-                <div className="col-span-2 border-t border-[#FAF7F2] pt-3 flex gap-2 items-start">
-                  <Briefcase className="w-3.5 h-3.5 text-[#B08968] mt-0.5 shrink-0" />
-                  <div>
-                    <span className="text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider block">Occupation</span>
-                    <span className="font-semibold text-[#2D2D2D] block mt-0.5">{member.occupation}</span>
-                  </div>
-                </div>
-
-                <div className="col-span-2 border-t border-[#FAF7F2] pt-3 flex gap-2 items-start">
-                  <GraduationCap className="w-3.5 h-3.5 text-[#B08968] mt-0.5 shrink-0" />
-                  <div>
-                    <span className="text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider block">Education</span>
-                    <span className="font-semibold text-[#2D2D2D] block mt-0.5">{member.education}</span>
-                  </div>
-                </div>
-
-                {(member.mobile || member.email) && (
-                  <div className="col-span-2 border-t border-[#FAF7F2] pt-3 space-y-1.5">
-                    {member.mobile && (
-                      <div className="flex gap-2 items-center text-[#6A5B4D]">
-                        <Phone className="w-3.5 h-3.5 text-[#B08968] shrink-0" />
-                        <span className="font-semibold text-xs text-[#2D2D2D]">{member.mobile}</span>
-                      </div>
-                    )}
-                    {member.email && (
-                      <div className="flex gap-2 items-center text-[#6A5B4D]">
-                        <Mail className="w-3.5 h-3.5 text-[#B08968] shrink-0" />
-                        <span className="font-semibold text-xs text-[#2D2D2D] truncate">{member.email}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <FamilyMembersView initialMembers={sortedMembers} />
       </div>
     </div>
   );

@@ -343,6 +343,158 @@ export default async function DashboardOverview() {
     );
   }
 
+  if (user.role === 'NRI_ADMIN') {
+    // NRI ADMIN VIEW
+    const totalNriFamilies = await prisma.family.count({
+      where: { familyId: { startsWith: 'KG-NRI-' } },
+    });
+
+    const totalNriMembers = await prisma.member.count({
+      where: { family: { familyId: { startsWith: 'KG-NRI-' } } },
+    });
+
+    const pendingJoinRequests = await prisma.joinRequest.count({
+      where: { status: 'PENDING' },
+    });
+
+    const pendingNriUpdates = await prisma.updateRequest.findMany({
+      where: {
+        status: 'PENDING',
+        family: { familyId: { startsWith: 'KG-NRI-' } },
+      },
+      include: {
+        family: true,
+        requester: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return (
+      <div className="space-y-6">
+        {/* Admin Header */}
+        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm">
+          <h1 className="text-xl font-serif font-bold text-[#8B5E3C] md:text-2xl">
+            NRI Admin Portal
+          </h1>
+          <p className="text-sm text-[#6A5B4D] mt-1">
+            Manage global family enrollment requests, record updates, and census audits.
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-[#FAF7F2] text-[#8B5E3C] rounded-md border border-[#E5DDD0]">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider">NRI Families</p>
+              <h3 className="text-2xl font-bold text-[#8B5E3C] mt-0.5">{totalNriFamilies}</h3>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-[#FAF7F2] text-[#B08968] rounded-md border border-[#E5DDD0]">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider">NRI Members</p>
+              <h3 className="text-2xl font-bold text-[#8B5E3C] mt-0.5">{totalNriMembers}</h3>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-[#FAF7F2] text-[#D4A373] rounded-md border border-[#E5DDD0]">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider">Join Requests</p>
+              <h3 className="text-2xl font-bold text-[#8B5E3C] mt-0.5">{pendingJoinRequests}</h3>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-[#FAF7F2] text-[#8B5E3C] rounded-md border border-[#E5DDD0]">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider">Update Requests</p>
+              <h3 className="text-2xl font-bold text-[#8B5E3C] mt-0.5">{pendingNriUpdates.length}</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Link href="/dashboard/join-requests" className="bg-white p-6 rounded-lg border border-[#E5DDD0] hover:border-[#8B5E3C] shadow-sm flex items-center justify-between transition-all group">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#FAF7F2] text-[#8B5E3C] rounded-full group-hover:bg-[#8B5E3C] group-hover:text-white transition-colors border border-[#E5DDD0]">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#2D2D2D]">Review Enrollment Requests</h4>
+                <p className="text-xs text-[#6A5B4D] mt-0.5">Approve new families applying to join the portal ({pendingJoinRequests} pending)</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-[#8B5E3C] group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          <Link href="/dashboard/requests" className="bg-white p-6 rounded-lg border border-[#E5DDD0] hover:border-[#8B5E3C] shadow-sm flex items-center justify-between transition-all group">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#FAF7F2] text-[#8B5E3C] rounded-full group-hover:bg-[#8B5E3C] group-hover:text-white transition-colors border border-[#E5DDD0]">
+                <FileEdit className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#2D2D2D]">Review Family Updates</h4>
+                <p className="text-xs text-[#6A5B4D] mt-0.5">Approve or reject updates submitted by NRI families ({pendingNriUpdates.length} pending)</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-[#8B5E3C] group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+
+        {/* Pending Update Requests Queue */}
+        <div className="bg-white rounded-lg border border-[#E5DDD0] shadow-sm overflow-hidden">
+          <div className="p-4 bg-[#FAF7F2] border-b border-[#E5DDD0] flex justify-between items-center">
+            <h2 className="text-sm font-bold text-[#6A5B4D] uppercase tracking-wider flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#8B5E3C]" />
+              Pending Updates Verification Queue ({pendingNriUpdates.length})
+            </h2>
+          </div>
+          <div className="divide-y divide-[#E5DDD0]">
+            {pendingNriUpdates.length === 0 ? (
+              <div className="p-8 text-center text-sm text-[#6A5B4D]">
+                No pending family update requests in queue.
+              </div>
+            ) : (
+              pendingNriUpdates.slice(0, 5).map((req) => (
+                <div key={req.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FAF7F2]/50 transition-colors">
+                  <div>
+                    <span className="text-xs font-bold text-[#B08968] uppercase tracking-wider">
+                      {req.type.replace('_', ' ')}
+                    </span>
+                    <h4 className="text-sm font-semibold text-[#2D2D2D] mt-0.5">
+                      Family: {req.family.headName} ({req.family.familyId})
+                    </h4>
+                    <p className="text-xs text-[#6A5B4D] mt-0.5">
+                      Submitted by: {req.requester.mobileNumber} • {format(new Date(req.createdAt), 'dd MMM yyyy, hh:mm a')}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/dashboard/requests`}
+                    className="self-start sm:self-center px-4 py-2 border border-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white text-[#8B5E3C] rounded text-xs font-semibold transition-all shadow-sm"
+                  >
+                    Verify Request
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // SUPER ADMIN VIEW
   const allLogs = await prisma.auditLog.findMany({
     orderBy: { createdAt: 'desc' },

@@ -12,6 +12,7 @@ enum Role {
   GHATAK_ADMIN
   PRADESHIK_ADMIN
   SUPER_ADMIN
+  NRI_ADMIN
 }
 
 enum Gender {
@@ -58,13 +59,17 @@ model Family {
   id               String          @id @default(uuid())
   familyId         String          @unique // e.g., KG-2026-00123
   headName         String
-  pradeshikId      String
-  pradeshik        Pradeshik       @relation(fields: [pradeshikId], references: [id])
-  ghatakId         String
-  ghatak           Ghatak          @relation(fields: [ghatakId], references: [id])
+  pradeshikId      String?
+  pradeshik        Pradeshik?      @relation(fields: [pradeshikId], references: [id])
+  ghatakId         String?
+  ghatak           Ghatak?         @relation(fields: [ghatakId], references: [id])
   mobile           String          // Primary contact mobile number
   address          String?
   nativeVillage    String?
+  country          String?
+  city             String?
+  indiaHometown    String?
+  kutchVillage     String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   members          Member[]
@@ -174,4 +179,18 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model JoinRequest {
+  id            String        @id @default(uuid())
+  fullName      String
+  mobileNumber  String        @unique
+  email         String
+  country       String
+  city          String
+  indiaHometown String
+  kutchVillage  String
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }

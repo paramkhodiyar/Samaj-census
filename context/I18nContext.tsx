@@ -41,10 +41,17 @@ const translations = {
     CORRECTION_REQUIRED: 'Correction Required',
 
     // Splash / Welcome Screen
-    samajTitle: 'Shri Kutch Gurjar Kshatriya Samaj Mahasabha',
+    samajTitle: 'Shri Kutch Gurjar Kshatriya Samaj',
     portalVision: 'Digital Family Record Portal',
     enterPortal: 'Enter Portal',
     footerCredits: 'Developed & Maintained by Param Khodiyar | Version 1.0',
+    comingSoon: 'Coming Soon',
+    residentsPortalTitle: 'Residents of India',
+    residentsPortalDesc: 'Access the Census Portal for community members residing inside India. Setup is in progress.',
+    locked: 'Under Development',
+    active: 'Active',
+    nriPortalTitle: 'NRI Members',
+    nriPortalDesc: 'Access the Census Portal for community members residing outside India (Non-Resident Indians).',
 
     // Login Screen
     loginTitle: 'Sign In to Portal',
@@ -186,10 +193,17 @@ const translations = {
     CORRECTION_REQUIRED: 'सुधार की आवश्यकता',
 
     // Splash / Welcome Screen
-    samajTitle: 'श्री कच्छ गुर्जर क्षत्रिय समाज महासभा',
+    samajTitle: 'श्री कच्छ गुर्जर क्षत्रिय समाज',
     portalVision: 'डिजिटल पारिवारिक रिकॉर्ड पोर्टल',
     enterPortal: 'पोर्टल में प्रवेश करें',
     footerCredits: 'विकास और रखरखाव परम खोडियार द्वारा | संस्करण 1.0',
+    comingSoon: 'शीघ्र आ रहा है',
+    residentsPortalTitle: 'भारत के निवासी',
+    residentsPortalDesc: 'भारत में रहने वाले समुदाय के सदस्यों के लिए जनगणना पोर्टल। सेटअप प्रगति पर है।',
+    locked: 'विकास के अधीन',
+    active: 'सक्रिय',
+    nriPortalTitle: 'एनआरआई सदस्य',
+    nriPortalDesc: 'भारत से बाहर (अनिवासी भारतीयों) रहने वाले समुदाय के सदस्यों के लिए जनगणना पोर्टल।',
 
     // Login Screen
     loginTitle: 'पोर्टल में साइन इन करें',
@@ -331,10 +345,17 @@ const translations = {
     CORRECTION_REQUIRED: 'સુધારણા જરૂરી',
 
     // Splash / Welcome Screen
-    samajTitle: 'શ્રી કચ્છ ગુર્જર ક્ષત્રિય સમાજ મહાસભા',
+    samajTitle: 'શ્રી કચ્છ ગુર્જર ક્ષત્રિય સમાજ',
     portalVision: 'ડિજિટલ કૌટુંબિક રેકોર્ડ પોર્ટલ',
     enterPortal: 'પોર્ટલમાં પ્રવેશ કરો',
     footerCredits: 'વિકાસ અને જાળવણી પરમ ખોડિયાર દ્વારા | આવૃત્તિ ૧.૦',
+    comingSoon: 'ટૂંક સમયમાં આવી રહ્યું છે',
+    residentsPortalTitle: 'ભારતના રહેવાસીઓ',
+    residentsPortalDesc: 'ભારતમાં રહેતા સમુદાયના સભ્યો માટે વસ્તી ગણતરી પોર્ટલ. સેટઅપ પ્રગતિમાં છે.',
+    locked: 'વિકાસ હેઠળ છે',
+    active: 'સક્રિય',
+    nriPortalTitle: 'એનઆરઆઈ સભ્યો',
+    nriPortalDesc: 'ભારતની બહાર રહેતા (બિન-રહેવાસી ભારતીય) સમુદાયના સભ્યો માટે વસ્તી ગણતરી પોર્ટલ.',
 
     // Login Screen
     loginTitle: 'પોર્ટલમાં સાઇન ઇન કરો',

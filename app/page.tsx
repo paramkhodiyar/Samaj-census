@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/context/I18nContext';
-import { BookOpen, ArrowRight, Globe } from 'lucide-react';
+import { BookOpen, ArrowRight, Globe, Lock, ShieldAlert } from 'lucide-react';
 
 export default function WelcomeSplash() {
   const { language, setLanguage, t } = useTranslation();
@@ -50,21 +50,70 @@ export default function WelcomeSplash() {
             {t('portalVision')}
           </h2>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-8 py-3.5 bg-[#8B5E3C] text-white rounded-md font-semibold text-base transition-colors hover:bg-[#704A2E] shadow-md flex items-center justify-center gap-2 group"
-            >
-              {t('enterPortal')}
-              <ArrowRight className="w-4 h-4 text-[#FAF7F2] group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/register"
-              className="w-full sm:w-auto px-8 py-3.5 bg-white border-2 border-[#8B5E3C] text-[#8B5E3C] rounded-md font-semibold text-base transition-colors hover:bg-[#FAF7F2] shadow-sm flex items-center justify-center gap-2"
-            >
-              {t('registerNow')}
-            </Link>
+          {/* Portals Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mt-10 text-left">
+            {/* Residents of India Portal Card (Locked) */}
+            <div className="flex flex-col justify-between p-6 bg-gray-50/50 rounded-xl border border-dashed border-gray-300 relative group select-none">
+              {/* Coming Soon Badge */}
+              <div className="absolute top-4 right-4 bg-gray-200/80 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                {t('comingSoon')}
+              </div>
+              
+              <div>
+                {/* Icon Wrapper */}
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4 text-gray-400">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-serif font-bold text-gray-500 mb-2">
+                  {t('residentsPortalTitle')}
+                </h3>
+                <p className="text-sm text-gray-400 font-sans leading-relaxed mb-6">
+                  {t('residentsPortalDesc')}
+                </p>
+              </div>
+
+              <div className="w-full py-3 bg-gray-100 text-gray-400 rounded-md font-semibold text-sm flex items-center justify-center gap-2 cursor-not-allowed border border-gray-200">
+                <Lock className="w-4 h-4" />
+                {t('locked')}
+              </div>
+            </div>
+
+            {/* NRI Portal Card (Active) */}
+            <div className="flex flex-col justify-between p-6 bg-white rounded-xl border-2 border-[#8B5E3C] shadow-md relative group hover:shadow-lg transition-shadow">
+              {/* Active Badge */}
+              <div className="absolute top-4 right-4 bg-[#FAF7F2] text-[#8B5E3C] text-xs font-semibold px-2.5 py-1 rounded-full border border-[#D4A373] uppercase tracking-wider">
+                {t('active')}
+              </div>
+
+              <div>
+                {/* Icon Wrapper */}
+                <div className="w-12 h-12 rounded-full bg-[#FAF7F2] border border-[#D4A373] flex items-center justify-center mb-4 text-[#8B5E3C]">
+                  <Globe className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-serif font-bold text-[#8B5E3C] mb-2">
+                  {t('nriPortalTitle')}
+                </h3>
+                <p className="text-sm text-[#6A5B4D] font-sans leading-relaxed mb-6">
+                  {t('nriPortalDesc')}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/login"
+                  className="flex-1 px-4 py-3 bg-[#8B5E3C] text-white rounded-md font-semibold text-sm transition-colors hover:bg-[#704A2E] shadow-sm flex items-center justify-center gap-1.5 group text-center"
+                >
+                  {t('enterPortal')}
+                  <ArrowRight className="w-4 h-4 text-[#FAF7F2] group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+                <Link
+                  href="/register"
+                  className="flex-1 px-4 py-3 bg-white border border-[#8B5E3C] text-[#8B5E3C] rounded-md font-semibold text-sm transition-colors hover:bg-[#FAF7F2] flex items-center justify-center text-center"
+                >
+                  {t('registerNow')}
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Lotus Divider Motif */}
