@@ -119,7 +119,11 @@ async function generateAndSaveOTP(mobileNumber: string) {
   });
 
   // Log to server console
-  console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}: ${code} (Development Log)`);
+  } else {
+    console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}`);
+  }
   
   // Dispatch to WhatsApp (runs asynchronously in background)
   sendWhatsAppOTP(mobileNumber, code);
