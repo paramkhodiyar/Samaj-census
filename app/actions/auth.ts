@@ -44,7 +44,20 @@ async function sendWhatsAppOTP(mobileNumber: string, code: string) {
       language: { code: 'en_US' },
     };
 
-    if (templateName !== 'hello_world') {
+    if (templateName === 'hello_world') {
+      // No parameters needed
+    } else if (templateName === 'jaspers_market_order_confirmation_v1') {
+      templatePayload.components = [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: 'User' },
+            { type: 'text', text: code }, // Sent as order number
+            { type: 'text', text: '10 mins' },
+          ],
+        },
+      ];
+    } else {
       templatePayload.components = [
         {
           type: 'body',
