@@ -24,19 +24,17 @@ export default async function JoinRequestsPage() {
   });
 
   return (
-    <DashboardShell session={session}>
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm">
-          <h1 className="text-xl font-serif font-bold text-[#8B5E3C] md:text-2xl">
-            Family Enrollment Requests
-          </h1>
-          <p className="text-sm text-[#6A5B4D] mt-1">
-            Review and approve new NRI families requesting access to the census portal.
-          </p>
-        </div>
-
-        <JoinRequestsClient initialRequests={requests} verifierId={session.userId} />
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm">
+        <h1 className="text-xl font-serif font-bold text-[#8B5E3C] md:text-2xl">
+          Family Enrollment Requests
+        </h1>
+        <p className="text-sm text-[#6A5B4D] mt-1">
+          Review and approve new NRI families requesting access to the census portal.
+        </p>
       </div>
-    </DashboardShell>
+
+      <JoinRequestsClient initialRequests={requests} verifierId={session.userId} />
+    </div>
   );
 }

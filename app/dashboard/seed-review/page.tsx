@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useConfirm } from '@/context/ConfirmContext';
 
 export default function SeedReviewPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function SeedReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   useEffect(() => {
     async function loadData() {
@@ -74,8 +76,12 @@ export default function SeedReviewPage() {
     }));
   };
 
-  const deleteFamily = (famIdx: number) => {
-    if (!window.confirm('Remove this entire family from the seed list?')) return;
+  const deleteFamily = async (famIdx: number) => {
+    const isConfirmed = await confirm({
+      title: 'Remove Family Record',
+      message: 'Are you sure you want to remove this entire family from the seed list?',
+    });
+    if (!isConfirmed) return;
     setFamilies(prev => prev.filter((_, i) => i !== famIdx));
   };
 
@@ -85,16 +91,19 @@ export default function SeedReviewPage() {
 
   const selectedCount = families.filter(f => f.selected).length;
 
-  const handleSeed = () => {
+  const handleSeed = async () => {
     const selectedFamilies = families.filter(f => f.selected);
     if (selectedFamilies.length === 0) {
       toast.error('Please select at least one family to seed.');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to seed the selected ${selectedFamilies.length} families into the Neon Postgres database?`)) {
-      return;
-    }
+    const isConfirmed = await confirm({
+      title: 'Confirm Seeding',
+      message: `Are you sure you want to seed the selected ${selectedFamilies.length} families into the Neon Postgres database?`,
+    });
+
+    if (!isConfirmed) return;
 
     startTransition(async () => {
       const result = await confirmAndSeedAction(selectedFamilies);

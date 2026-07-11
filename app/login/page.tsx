@@ -69,7 +69,7 @@ export default function LoginPage() {
       return;
     }
     
-    if (check.status && check.status !== 'ACTIVE') {
+    if (check.status && check.status !== 'ACTIVE' && check.status !== 'NOT_ACTIVATED') {
       setIsSendingOtp(false);
       setMobileStatus(check.status as any);
       return;
@@ -83,14 +83,7 @@ export default function LoginPage() {
     } else if (result?.success) {
       setMobileStatus('ACTIVE');
       setOtpSent(true);
-      if (result.otp) {
-        setDevOtp(result.otp);
-        toast.success(`OTP Sent! (For testing, enter code: ${result.otp})`, {
-          duration: 15000,
-        });
-      } else {
-        toast.success('OTP sent successfully.');
-      }
+      toast.success('OTP sent successfully. Please check your WhatsApp.');
     }
   };
 

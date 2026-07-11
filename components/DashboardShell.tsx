@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/context/I18nContext';
-import { Home, Users, FileText, BarChart3, User, Globe, LogOut, BookOpen } from 'lucide-react';
+import { Home, Users, FileText, BarChart3, User, Globe, LogOut, BookOpen, UserCheck } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 import { toast } from 'sonner';
 
@@ -64,7 +64,7 @@ export default function DashboardShell({ session, children }: DashboardShellProp
       label: t('home'),
       href: '/dashboard',
       icon: Home,
-      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN'],
+      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN', 'NRI_ADMIN'],
     },
     {
       label: t('family'),
@@ -73,22 +73,28 @@ export default function DashboardShell({ session, children }: DashboardShellProp
       roles: ['USER'], // Only regular family users see their family details
     },
     {
-      label: t('requests'),
+      label: 'Registration Approvals',
+      href: '/dashboard/join-requests',
+      icon: UserCheck,
+      roles: ['NRI_ADMIN', 'SUPER_ADMIN'],
+    },
+    {
+      label: session.role === 'NRI_ADMIN' ? 'Data Edit Approvals' : t('requests'),
       href: '/dashboard/requests',
       icon: FileText,
-      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN'],
+      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN', 'NRI_ADMIN'],
     },
     {
       label: t('stats'),
       href: '/dashboard/stats',
       icon: BarChart3,
-      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN'],
+      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN', 'NRI_ADMIN'],
     },
     {
       label: t('profile'),
       href: '/dashboard/profile',
       icon: User,
-      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN'],
+      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN', 'NRI_ADMIN'],
     },
   ];
 

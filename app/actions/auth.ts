@@ -19,9 +19,77 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(6, 'Password confirmation is required'),
 });
 
+// Helper: Send WhatsApp OTP using Meta Cloud API
+async function sendWhatsAppOTP(mobileNumber: string, code: string) {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME || 'auth_otp';
+
+  if (!token || !phoneNumberId) {
+    console.log(`[OTP SERVICE] Meta WhatsApp credentials not configured.`);
+    return;
+  }
+
+  try {
+    // Clean formatting (keep digits only, e.g. 254735319243 or 919876543210)
+    const cleanPhone = mobileNumber.replace(/[^0-9]/g, '');
+    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
+    
+    // Build payload dynamically based on template type
+    const templatePayload: any = {
+      name: templateName,
+      language: { code: 'en_US' },
+    };
+
+    if (templateName !== 'hello_world') {
+      templatePayload.components = [
+        {
+          type: 'body',
+          parameters: [
+            {
+              type: 'text',
+              text: code,
+            },
+          ],
+        },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [
+            {
+              type: 'text',
+              text: code,
+            },
+          ],
+        },
+      ];
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: cleanPhone,
+        type: 'template',
+        template: templatePayload,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('[OTP SERVICE] Meta WhatsApp API response:', data);
+  } catch (error) {
+    console.error('[OTP SERVICE] Failed to send WhatsApp message:', error);
+  }
+}
+
 // Helper: Generate OTP
 async function generateAndSaveOTP(mobileNumber: string) {
-  // Generate a random 6-digit code (e.g., 123456 in dev or random)
+  // Generate a random 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
@@ -35,7 +103,11 @@ async function generateAndSaveOTP(mobileNumber: string) {
   });
 
   // Log to server console
-  console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}: ${code}`);
+  console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}`);
+  
+  // Dispatch to WhatsApp (runs asynchronously in background)
+  sendWhatsAppOTP(mobileNumber, code);
+
   return code;
 }
 
@@ -88,8 +160,8 @@ export async function sendOtpAction(mobileNumber: string) {
     }
 
     // Generate and save OTP
-    const code = await generateAndSaveOTP(mobileNumber);
-    return { success: true, otp: code }; // Return code to show in toast for development testing
+    await generateAndSaveOTP(mobileNumber);
+    return { success: true };
   } catch (error: any) {
     console.error('Send OTP Error:', error);
     return { error: 'Failed to send OTP. Try again.' };

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useConfirm } from '@/context/ConfirmContext';
 
 type JoinRequest = {
   id: string;
@@ -42,12 +43,18 @@ export default function JoinRequestsClient({
   const [requests, setRequests] = useState<JoinRequest[]>(initialRequests as JoinRequest[]);
   const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [isPendingAction, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   const filteredRequests = requests.filter(req => req.status === activeTab);
 
   const handleApprove = async (id: string) => {
-    if (!window.confirm('Are you sure you want to approve this family enrollment request?')) return;
-    
+    const isConfirmed = await confirm({
+      title: 'Approve Enrollment Request',
+      message: 'Are you sure you want to approve this family enrollment request and enroll them into the census portal?',
+    });
+
+    if (!isConfirmed) return;
+
     startTransition(async () => {
       const result = await approveJoinRequestAction(id, verifierId);
       if (result?.error) {
@@ -62,7 +69,12 @@ export default function JoinRequestsClient({
   };
 
   const handleReject = async (id: string) => {
-    if (!window.confirm('Are you sure you want to reject this request?')) return;
+    const isConfirmed = await confirm({
+      title: 'Reject Enrollment Request',
+      message: 'Are you sure you want to reject this family enrollment request?',
+    });
+
+    if (!isConfirmed) return;
 
     startTransition(async () => {
       const result = await rejectJoinRequestAction(id, verifierId);
