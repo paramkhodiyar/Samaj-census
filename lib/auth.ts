@@ -1,20 +1,30 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET_STR = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET_STR = process.env.JWT_REFRESH_SECRET;
+let JWT_SECRET: Uint8Array | null = null;
+let JWT_REFRESH_SECRET: Uint8Array | null = null;
 
-if (process.env.NODE_ENV === 'production') {
-  if (!JWT_SECRET_STR) {
-    throw new Error('FATAL: JWT_SECRET environment variable is missing in production!');
+function getJwtSecret() {
+  if (!JWT_SECRET) {
+    const secret = process.env.JWT_SECRET;
+    if (process.env.NODE_ENV === 'production' && !secret) {
+      throw new Error('FATAL: JWT_SECRET environment variable is missing in production!');
+    }
+    JWT_SECRET = new TextEncoder().encode(secret || 'fallback-secret-for-dev-only-32-chars-long');
   }
-  if (!JWT_REFRESH_SECRET_STR) {
-    throw new Error('FATAL: JWT_REFRESH_SECRET environment variable is missing in production!');
-  }
+  return JWT_SECRET;
 }
 
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STR || 'fallback-secret-for-dev-only-32-chars-long');
-const JWT_REFRESH_SECRET = new TextEncoder().encode(JWT_REFRESH_SECRET_STR || 'fallback-refresh-secret-for-dev-only-32-chars');
+function getJwtRefreshSecret() {
+  if (!JWT_REFRESH_SECRET) {
+    const secret = process.env.JWT_REFRESH_SECRET;
+    if (process.env.NODE_ENV === 'production' && !secret) {
+      throw new Error('FATAL: JWT_REFRESH_SECRET environment variable is missing in production!');
+    }
+    JWT_REFRESH_SECRET = new TextEncoder().encode(secret || 'fallback-refresh-secret-for-dev-only-32-chars');
+  }
+  return JWT_REFRESH_SECRET;
+}
 
 export interface TokenPayload {
   userId: string;
@@ -31,7 +41,7 @@ export async function signToken(payload: TokenPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('1d')
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function signRefreshToken(payload: TokenPayload): Promise<string> {
@@ -43,12 +53,12 @@ export async function signRefreshToken(payload: TokenPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_REFRESH_SECRET); // Uses separate refresh secret
+    .sign(getJwtRefreshSecret());
 }
 
 export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return {
       userId: payload.userId as string,
       role: payload.role as string,
@@ -61,7 +71,7 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 
 export async function verifyRefreshToken(token: string): Promise<TokenPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_REFRESH_SECRET);
+    const { payload } = await jwtVerify(token, getJwtRefreshSecret());
     return {
       userId: payload.userId as string,
       role: payload.role as string,
