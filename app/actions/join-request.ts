@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getAuthSession } from '@/lib/auth';
 
 // Action: Submit a Join/Enrollment Request
 export async function submitJoinRequestAction(data: {
@@ -12,11 +13,16 @@ export async function submitJoinRequestAction(data: {
   city: string;
   indiaHometown: string;
   kutchVillage: string;
+  consentGiven?: boolean;
 }) {
-  const { fullName, mobileNumber, email, country, city, indiaHometown, kutchVillage } = data;
+  const { fullName, mobileNumber, email, country, city, indiaHometown, kutchVillage, consentGiven } = data;
 
   if (!fullName || !mobileNumber || !email || !country || !city || !kutchVillage) {
     return { error: 'All fields are required.' };
+  }
+
+  if (!consentGiven) {
+    return { error: 'Consent is required to submit your enrollment request.' };
   }
 
   try {
@@ -60,6 +66,8 @@ export async function submitJoinRequestAction(data: {
         indiaHometown,
         kutchVillage,
         status: 'PENDING',
+        consentGivenAt: new Date(),
+        policyVersion: '1.0',
       },
     });
 
@@ -74,13 +82,22 @@ export async function submitJoinRequestAction(data: {
     return { success: true };
   } catch (error: any) {
     console.error('Submit join request error:', error);
+    if (error?.code === 'P2002') {
+      return { error: 'An enrollment request with this mobile number already exists.' };
+    }
     return { error: 'Failed to submit enrollment request. Please try again.' };
   }
 }
 
 // Action: Approve Join Request
-export async function approveJoinRequestAction(requestId: string, verifierId: string) {
+export async function approveJoinRequestAction(requestId: string) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+    const verifierId = session.userId;
+
     const verifier = await prisma.user.findUnique({
       where: { id: verifierId },
     });
@@ -176,8 +193,14 @@ export async function approveJoinRequestAction(requestId: string, verifierId: st
 }
 
 // Action: Reject Join Request
-export async function rejectJoinRequestAction(requestId: string, verifierId: string) {
+export async function rejectJoinRequestAction(requestId: string) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+    const verifierId = session.userId;
+
     const verifier = await prisma.user.findUnique({
       where: { id: verifierId },
     });

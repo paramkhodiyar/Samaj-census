@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from './lib/auth';
+import { verifyToken, verifyRefreshToken, signToken } from './lib/auth';
 
-const publicRoutes = ['/login', '/register', '/api/auth/verify'];
+const publicRoutes = [
+  '/login',
+  '/register',
+  '/api/auth/verify',
+  '/privacy',
+  '/grievance',
+  '/forgot-password',
+  '/reset-password'
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,14 +21,44 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('auth-token')?.value;
+  const refreshToken = request.cookies.get('refresh-token')?.value;
 
-  if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  let payload = null;
+  if (token) {
+    payload = await verifyToken(token);
   }
 
-  const payload = await verifyToken(token);
+  // Silent refresh flow
+  if (!payload && refreshToken) {
+    const refreshPayload = await verifyRefreshToken(refreshToken);
+    if (refreshPayload) {
+      payload = refreshPayload;
+      
+      // Generate new access token
+      const newToken = await signToken({
+        userId: refreshPayload.userId,
+        role: refreshPayload.role,
+        mobileNumber: refreshPayload.mobileNumber,
+      });
+
+      const response = NextResponse.next();
+      response.cookies.set('auth-token', newToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24, // 1 day
+        path: '/',
+      });
+
+      // Role check during refresh response
+      if (pathname.startsWith('/admin') && payload.role === 'USER') {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      return response;
+    }
+  }
+
   if (!payload) {
-    // Potentially try refresh token here in a more advanced implementation
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

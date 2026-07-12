@@ -88,7 +88,7 @@ export default function DashboardShell({ session, children }: DashboardShellProp
       label: t('stats'),
       href: '/dashboard/stats',
       icon: BarChart3,
-      roles: ['USER', 'GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN', 'NRI_ADMIN'],
+      roles: ['GHATAK_ADMIN', 'PRADESHIK_ADMIN', 'SUPER_ADMIN', 'NRI_ADMIN'],
     },
     {
       label: t('profile'),

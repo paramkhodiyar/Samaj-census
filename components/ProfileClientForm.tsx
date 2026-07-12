@@ -5,11 +5,7 @@ import { changePasswordAction } from '@/app/actions/auth';
 import { Lock, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface ProfileClientFormProps {
-  userId: string;
-}
-
-export default function ProfileClientForm({ userId }: ProfileClientFormProps) {
+export default function ProfileClientForm() {
   const [state, formAction, isPending] = useActionState(changePasswordAction, null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -29,7 +25,23 @@ export default function ProfileClientForm({ userId }: ProfileClientFormProps) {
         Change Password
       </h3>
 
-      <input type="hidden" name="userId" value={userId} />
+      <div>
+        <label className="block text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider mb-1">
+          Current Password
+        </label>
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-[#6A5B4D]/75">
+            <Lock className="w-3.5 h-3.5" />
+          </span>
+          <input
+            type="password"
+            name="currentPassword"
+            required
+            placeholder="Enter current password"
+            className="pl-8 pr-3 py-1.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded text-xs focus:outline-none"
+          />
+        </div>
+      </div>
 
       <div>
         <label className="block text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider mb-1">

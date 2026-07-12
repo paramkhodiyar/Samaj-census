@@ -2,6 +2,7 @@
 
 import React, { useState, useActionState, useEffect } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useTranslation } from '@/context/I18nContext';
 import { loginAction, loginOtpAction, sendOtpAction, checkMobileNumberAction } from '@/app/actions/auth';
 import { Phone, Lock, Key, Globe, ArrowLeft, ShieldCheck, AlertCircle, ShieldAlert } from 'lucide-react';
@@ -14,7 +15,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
   const [mobileStatus, setMobileStatus] = useState<'IDLE' | 'ACTIVE' | 'BLOCKED_NON_HEAD' | 'NOT_ACTIVATED' | 'UNREGISTERED'>('IDLE');
 
   // Password Login State
@@ -25,7 +27,12 @@ export default function LoginPage() {
 
   // Display errors if server action fails
   useEffect(() => {
-    if (pwdState?.error) {
+    if (pwdState?.require2FA) {
+      setMobileStatus('ACTIVE');
+      setOtpSent(true);
+      setLoginMode('otp');
+      toast.success('Password verified. 2FA verification OTP code sent to WhatsApp!');
+    } else if (pwdState?.error) {
       if (pwdState.error === 'BLOCKED_NON_HEAD') {
         setMobileStatus('BLOCKED_NON_HEAD');
       } else if (pwdState.error === 'NOT_ACTIVATED') {
@@ -62,7 +69,21 @@ export default function LoginPage() {
     setIsSendingOtp(true);
     
     // Check mobile status before sending OTP
-    const check = await checkMobileNumberAction(mobileNumber);
+    const check = await checkMobileNumberAction(mobileNumber, captchaToken);
+    
+    if (check.error === 'CAPTCHA_REQUIRED') {
+      setIsSendingOtp(false);
+      setShowCaptcha(true);
+      toast.error('Security verification required. Please check the checkbox below.');
+      return;
+    }
+
+    if (check.error === 'CAPTCHA_INVALID') {
+      setIsSendingOtp(false);
+      toast.error('Security verification failed. Please try again.');
+      return;
+    }
+
     if (check.error) {
       setIsSendingOtp(false);
       toast.error(check.error);
@@ -131,7 +152,6 @@ export default function LoginPage() {
                   onClick={() => {
                     setLoginMode('password');
                     setOtpSent(false);
-                    setDevOtp(null);
                   }}
                   className={`py-2 text-sm font-semibold rounded ${
                     loginMode === 'password'
@@ -178,9 +198,17 @@ export default function LoginPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#6A5B4D] mb-1.5">
-                      {t('password')}
-                    </label>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-sm font-medium text-[#6A5B4D]">
+                        {t('password')}
+                      </label>
+                      <Link
+                        href="/forgot-password"
+                        className="text-xs font-semibold text-[#8B5E3C] hover:underline"
+                      >
+                        Forgot Password?
+                      </Link>
+                    </div>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
                         <Lock className="w-4 h-4" />
@@ -261,12 +289,27 @@ export default function LoginPage() {
                             className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8B5E3C] focus:border-[#8B5E3C] text-sm"
                           />
                         </div>
-                        {devOtp && (
-                          <p className="text-xs text-[#8B5E3C] mt-1 font-semibold">
-                            Testing Code auto-filled in toast: {devOtp}
-                          </p>
-                        )}
-                      </div>
+                      
+                      {showCaptcha && (
+                        <div className="mt-3 flex flex-col items-center">
+                          <div id="turnstile-container" className="my-2"></div>
+                          <Script
+                            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+                            strategy="afterInteractive"
+                            onLoad={() => {
+                              if ((window as any).turnstile) {
+                                (window as any).turnstile.render('#turnstile-container', {
+                                  sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA',
+                                  callback: (token: string) => {
+                                    setCaptchaToken(token);
+                                  },
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
 
                       <div className="flex justify-between items-center text-xs">
                         <button
@@ -446,7 +489,7 @@ export default function LoginPage() {
 
                   <div className="flex flex-col gap-2">
                     <Link
-                      href="/join-request"
+                      href="/register"
                       className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-sm flex items-center justify-center text-center"
                     >
                       Request Family Enrollment

@@ -24,15 +24,7 @@ export default async function FamilyEditPage() {
   const family = await prisma.family.findUnique({
     where: { id: user.familyId },
     include: {
-      members: {
-        select: {
-          id: true,
-          name: true,
-          relation: true,
-          age: true,
-          gender: true,
-        },
-      },
+      members: true,
     },
   });
 

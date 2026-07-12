@@ -2,11 +2,11 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getAuthSession } from '@/lib/auth';
+import { normalizeMobile } from '@/lib/utils';
 
 // Action: Submit Multi-step Family Update Request
 export async function submitCorrectionRequest(
-  familyId: string,
-  requesterId: string,
   wizardData: {
     familyInfo?: { address?: string; nativeVillage?: string; mobile?: string };
     addMembers?: Array<{
@@ -32,12 +32,31 @@ export async function submitCorrectionRequest(
       targetFamilyId: string;
       reason: string;
     }>;
+    memberCorrections?: Array<{
+      memberId: string;
+      fieldName: string;
+      oldValue: string;
+      newValue: string;
+    }>;
     otherCorrections?: string;
-    documents?: Array<{ name: string; fileUrl: string }>;
   }
 ) {
   try {
-    // 1. Fetch current family details to compare fields
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+    const requesterId = session.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!user || !user.familyId) {
+      return { error: 'No linked family record found.' };
+    }
+    const familyId = user.familyId;
+
     const family = await prisma.family.findUnique({
       where: { id: familyId },
     });
@@ -46,7 +65,6 @@ export async function submitCorrectionRequest(
       return { error: 'Family not found' };
     }
 
-    // Determine primary request type based on the content of the request
     let requestType: 'ADD_MEMBER' | 'REMOVE_MEMBER' | 'TRANSFER_MEMBER' | 'EDIT_INFO' | 'OTHER' = 'EDIT_INFO';
     if (wizardData.addMembers && wizardData.addMembers.length > 0) {
       requestType = 'ADD_MEMBER';
@@ -58,7 +76,6 @@ export async function submitCorrectionRequest(
       requestType = 'OTHER';
     }
 
-    // 2. Create the UpdateRequest record
     const request = await prisma.updateRequest.create({
       data: {
         familyId,
@@ -69,49 +86,32 @@ export async function submitCorrectionRequest(
       },
     });
 
-    const changesToCreate = [];
+    const changesToCreate: any[] = [];
 
-    // Step 1: Family Info updates
     if (wizardData.familyInfo) {
       const info = wizardData.familyInfo;
-      if (info.address && info.address !== family.address) {
-        changesToCreate.push({
-          requestId: request.id,
-          action: 'UPDATE_FIELD',
-          tableName: 'Family',
-          recordId: family.id,
-          fieldName: 'address',
-          oldValue: family.address || '',
-          newValue: info.address,
-        });
-      }
-      if (info.nativeVillage && info.nativeVillage !== family.nativeVillage) {
-        changesToCreate.push({
-          requestId: request.id,
-          action: 'UPDATE_FIELD',
-          tableName: 'Family',
-          recordId: family.id,
-          fieldName: 'nativeVillage',
-          oldValue: family.nativeVillage || '',
-          newValue: info.nativeVillage,
-        });
-      }
-      if (info.mobile && info.mobile !== family.mobile) {
-        changesToCreate.push({
-          requestId: request.id,
-          action: 'UPDATE_FIELD',
-          tableName: 'Family',
-          recordId: family.id,
-          fieldName: 'mobile',
-          oldValue: family.mobile,
-          newValue: info.mobile,
-        });
+      const compareFields: Array<'address' | 'nativeVillage' | 'mobile'> = ['address', 'nativeVillage', 'mobile'];
+      
+      for (const field of compareFields) {
+        if (info[field] !== undefined && info[field] !== family[field]) {
+          changesToCreate.push({
+            requestId: request.id,
+            action: 'UPDATE_FIELD',
+            tableName: 'Family',
+            recordId: family.id,
+            fieldName: field,
+            oldValue: family[field] || '',
+            newValue: info[field] || '',
+          });
+        }
       }
     }
 
-    // Step 2: Add Members
     if (wizardData.addMembers && wizardData.addMembers.length > 0) {
       for (const m of wizardData.addMembers) {
+        if (Number(m.age) < 18 && (m.mobile || m.email)) {
+          return { error: 'Children under 18 years of age cannot have independent mobile numbers or email addresses.' };
+        }
         changesToCreate.push({
           requestId: request.id,
           action: 'ADD_MEMBER',
@@ -121,7 +121,6 @@ export async function submitCorrectionRequest(
       }
     }
 
-    // Step 3: Remove Members
     if (wizardData.removeMembers && wizardData.removeMembers.length > 0) {
       for (const m of wizardData.removeMembers) {
         changesToCreate.push({
@@ -134,7 +133,6 @@ export async function submitCorrectionRequest(
       }
     }
 
-    // Step 4: Transfer Members
     if (wizardData.transferMembers && wizardData.transferMembers.length > 0) {
       for (const m of wizardData.transferMembers) {
         changesToCreate.push({
@@ -147,35 +145,44 @@ export async function submitCorrectionRequest(
       }
     }
 
-    // Step 5: Documents
-    if (wizardData.documents && wizardData.documents.length > 0) {
-      for (const doc of wizardData.documents) {
-        await prisma.document.create({
-          data: {
-            requestId: request.id,
-            name: doc.name,
-            fileUrl: doc.fileUrl,
-          },
+    if (wizardData.memberCorrections && wizardData.memberCorrections.length > 0) {
+      for (const mc of wizardData.memberCorrections) {
+        changesToCreate.push({
+          requestId: request.id,
+          action: 'UPDATE_FIELD',
+          tableName: 'Member',
+          recordId: mc.memberId,
+          fieldName: mc.fieldName,
+          oldValue: mc.oldValue || '',
+          newValue: mc.newValue || '',
         });
       }
     }
 
-    // Create all change logs in the DB
     if (changesToCreate.length > 0) {
       await prisma.requestChange.createMany({
         data: changesToCreate,
       });
     }
 
-    // Create notification for Ghatak Admins
-    const admins = await prisma.user.findMany({
-      where: {
-        role: 'GHATAK_ADMIN',
-        ghatakId: family.ghatakId,
-      },
-    });
+    let targetAdmins: any[] = [];
+    if (family.ghatakId) {
+      targetAdmins = await prisma.user.findMany({
+        where: { role: 'GHATAK_ADMIN', ghatakId: family.ghatakId },
+      });
+    }
+    if (targetAdmins.length === 0 && family.pradeshikId) {
+      targetAdmins = await prisma.user.findMany({
+        where: { role: 'PRADESHIK_ADMIN', pradeshikId: family.pradeshikId },
+      });
+    }
+    if (targetAdmins.length === 0) {
+      targetAdmins = await prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN' },
+      });
+    }
 
-    for (const admin of admins) {
+    for (const admin of targetAdmins) {
       await prisma.notification.create({
         data: {
           userId: admin.id,
@@ -185,7 +192,6 @@ export async function submitCorrectionRequest(
       });
     }
 
-    // Audit log
     await prisma.auditLog.create({
       data: {
         action: 'SUBMIT_REQUEST',
@@ -203,14 +209,18 @@ export async function submitCorrectionRequest(
   }
 }
 
-// Action: Approve, Reject, or Request Correction
 export async function processCorrectionRequest(
   requestId: string,
   status: 'APPROVED' | 'REJECTED' | 'CORRECTION_REQUIRED',
-  comments: string | null,
-  verifierId: string
+  comments: string | null
 ) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+    const verifierId = session.userId;
+
     const request = await prisma.updateRequest.findUnique({
       where: { id: requestId },
       include: { changes: true, family: true },
@@ -228,7 +238,54 @@ export async function processCorrectionRequest(
       return { error: 'Unauthorized to process requests' };
     }
 
-    // Update Request Status
+    if (verifier.role === 'GHATAK_ADMIN') {
+      if (!request.family.ghatakId || verifier.ghatakId !== request.family.ghatakId) {
+        return { error: 'OUT_OF_JURISDICTION' };
+      }
+    } else if (verifier.role === 'PRADESHIK_ADMIN') {
+      if (!request.family.pradeshikId || verifier.pradeshikId !== request.family.pradeshikId) {
+        return { error: 'OUT_OF_JURISDICTION' };
+      }
+    } else if (verifier.role === 'NRI_ADMIN') {
+      if (!request.family.familyId.startsWith('KG-NRI-')) {
+        return { error: 'OUT_OF_JURISDICTION' };
+      }
+    }
+
+    if (status === 'APPROVED') {
+      const familyMembers = await prisma.member.findMany({
+        where: { familyId: request.familyId, isAlive: true },
+      });
+
+      let headBeingRemoved = false;
+      let newHeadDesignated = false;
+
+      for (const change of request.changes) {
+        if ((change.action === 'REMOVE_MEMBER' || change.action === 'TRANSFER_MEMBER') && change.recordId) {
+          const targetMember = familyMembers.find(m => m.id === change.recordId);
+          if (targetMember && targetMember.relation === 'Head') {
+            headBeingRemoved = true;
+          }
+        }
+        if (change.action === 'UPDATE_FIELD' && change.fieldName === 'relation' && change.newValue === 'Head') {
+          newHeadDesignated = true;
+        }
+      }
+
+      if (headBeingRemoved && !newHeadDesignated) {
+        const remainingCount = familyMembers.filter(m => m.isAlive).length;
+        let removedCount = 0;
+        for (const change of request.changes) {
+          if ((change.action === 'REMOVE_MEMBER' || change.action === 'TRANSFER_MEMBER') && change.recordId) {
+            removedCount++;
+          }
+        }
+        if (remainingCount > removedCount) {
+          return { error: 'HEAD_REASSIGNMENT_REQUIRED' };
+        }
+      }
+    }
+
     await prisma.updateRequest.update({
       where: { id: requestId },
       data: {
@@ -237,11 +294,16 @@ export async function processCorrectionRequest(
       },
     });
 
-    // If APPROVED, apply all changes to Families / Members
     if (status === 'APPROVED') {
       for (const change of request.changes) {
         if (change.action === 'UPDATE_FIELD') {
           if (change.tableName === 'Family' && change.recordId && change.fieldName) {
+            const ALLOWED_FAMILY_FIELDS = ['address', 'nativeVillage', 'mobile', 'city', 'country', 'kutchVillage', 'indiaHometown'];
+            if (!ALLOWED_FAMILY_FIELDS.includes(change.fieldName)) {
+              console.warn(`[SECURITY ALERT] Rejected mass-assignment on Family field: ${change.fieldName}`);
+              continue;
+            }
+
             await prisma.family.update({
               where: { id: change.recordId },
               data: {
@@ -249,11 +311,39 @@ export async function processCorrectionRequest(
               },
             });
 
-            // Write change audit log
             await prisma.auditLog.create({
               data: {
                 action: 'UPDATE_FIELD',
                 description: `Changed ${change.fieldName} of Family ${request.family.familyId}: "${change.oldValue}" → "${change.newValue}"`,
+                userId: verifierId,
+              },
+            });
+          } else if (change.tableName === 'Member' && change.recordId && change.fieldName) {
+            const ALLOWED_MEMBER_FIELDS = ['name', 'occupation', 'education', 'bloodGroup', 'mobile', 'email', 'gender', 'maritalStatus', 'age'];
+            if (!ALLOWED_MEMBER_FIELDS.includes(change.fieldName)) {
+              console.warn(`[SECURITY ALERT] Rejected mass-assignment on Member field: ${change.fieldName}`);
+              continue;
+            }
+
+            let updateVal: any = change.newValue;
+            if (change.fieldName === 'age') {
+              updateVal = parseInt(change.newValue || '0', 10);
+            }
+            if (change.fieldName === 'mobile' && change.newValue) {
+              updateVal = normalizeMobile(change.newValue);
+            }
+
+            await prisma.member.update({
+              where: { id: change.recordId },
+              data: {
+                [change.fieldName]: updateVal,
+              },
+            });
+
+            await prisma.auditLog.create({
+              data: {
+                action: 'UPDATE_FIELD',
+                description: `Changed ${change.fieldName} of Member ${change.recordId}: "${change.oldValue}" → "${change.newValue}"`,
                 userId: verifierId,
               },
             });
@@ -285,11 +375,12 @@ export async function processCorrectionRequest(
           });
         } else if (change.action === 'REMOVE_MEMBER' && change.recordId) {
           const details = JSON.parse(change.newValue!);
-          // Respectfully soft delete by setting isAlive = false
           await prisma.member.update({
             where: { id: change.recordId },
             data: {
               isAlive: false,
+              removalReason: details.reason || 'Requested by family head',
+              removedAt: new Date(),
             },
           });
 
@@ -302,7 +393,6 @@ export async function processCorrectionRequest(
           });
         } else if (change.action === 'TRANSFER_MEMBER' && change.recordId) {
           const details = JSON.parse(change.newValue!);
-          // Find target family record
           const targetFamily = await prisma.family.findUnique({
             where: { familyId: details.targetFamilyId },
           });
@@ -327,7 +417,6 @@ export async function processCorrectionRequest(
       }
     }
 
-    // Send notification to the requester
     await prisma.notification.create({
       data: {
         userId: request.requesterId,
@@ -338,7 +427,6 @@ export async function processCorrectionRequest(
       },
     });
 
-    // Create Audit Log of request decision
     await prisma.auditLog.create({
       data: {
         action: `PROCESS_REQUEST_${status}`,
@@ -353,5 +441,105 @@ export async function processCorrectionRequest(
   } catch (error) {
     console.error('Process request error:', error);
     return { error: 'Failed to process request. Please try again.' };
+  }
+}
+
+// Action: Export My Family Data (DPDP Act Data Portability)
+export async function exportFamilyDataAction() {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      include: {
+        family: {
+          include: {
+            members: {
+              where: { isAlive: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user || !user.family) {
+      return { error: 'No linked family record found.' };
+    }
+
+    // Write audit log
+    await prisma.auditLog.create({
+      data: {
+        action: 'EXPORT_FAMILY_DATA',
+        description: `Exported personal census data card under DPDP Act 2023.`,
+        userId: session.userId,
+      }
+    });
+
+    return { success: true, data: user.family };
+  } catch (error) {
+    console.error('Export family data error:', error);
+    return { error: 'Failed to export family data.' };
+  }
+}
+
+// Action: Request Account Deactivation (DPDP Act Erasure)
+export async function requestDeactivationAction() {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      include: { family: true }
+    });
+
+    if (!user || !user.family) {
+      return { error: 'No linked family record found.' };
+    }
+
+    // Create deactivation update request
+    const request = await prisma.updateRequest.create({
+      data: {
+        familyId: user.familyId!,
+        requesterId: session.userId,
+        type: 'OTHER',
+        status: 'PENDING',
+        comments: `Account Deactivation Request: The family head has requested account deactivation & census data erasure under DPDP Act 2023.`,
+      }
+    });
+
+    // Notify Super Admins
+    const superAdmins = await prisma.user.findMany({
+      where: { role: 'SUPER_ADMIN' }
+    });
+
+    for (const admin of superAdmins) {
+      await prisma.notification.create({
+        data: {
+          userId: admin.id,
+          title: 'Account Deactivation Request',
+          message: `Family ${user.family.familyId} (${user.family.headName}) requested account deactivation.`,
+        }
+      });
+    }
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        action: 'REQUEST_DEACTIVATION',
+        description: `Requested account deactivation & census record erasure. Request ID: ${request.id}`,
+        userId: session.userId,
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Deactivation request error:', error);
+    return { error: 'Failed to submit deactivation request.' };
   }
 }

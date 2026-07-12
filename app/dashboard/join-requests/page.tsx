@@ -4,23 +4,41 @@ import { getAuthSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import JoinRequestsClient from './JoinRequestsClient';
 import DashboardShell from '@/components/DashboardShell';
+import { requireRole } from '@/lib/authz';
 
-export default async function JoinRequestsPage() {
+export default async function JoinRequestsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; search?: string }>;
+}) {
   const session = await getAuthSession();
+  requireRole(session, ['SUPER_ADMIN', 'NRI_ADMIN']);
   if (!session) {
     redirect('/login');
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-  });
+  const resolvedParams = await searchParams;
+  const page = parseInt(resolvedParams.page || '1', 10);
+  const search = resolvedParams.search || '';
+  const pageSize = 10;
 
-  if (!user || (user.role !== 'NRI_ADMIN' && user.role !== 'SUPER_ADMIN')) {
-    redirect('/dashboard');
+  const whereClause: any = {};
+  if (search) {
+    whereClause.OR = [
+      { fullName: { contains: search, mode: 'insensitive' } },
+      { mobileNumber: { contains: search, mode: 'insensitive' } },
+      { city: { contains: search, mode: 'insensitive' } },
+      { country: { contains: search, mode: 'insensitive' } },
+    ];
   }
 
+  const totalCount = await prisma.joinRequest.count({ where: whereClause });
+
   const requests = await prisma.joinRequest.findMany({
+    where: whereClause,
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
   });
 
   return (
@@ -34,7 +52,13 @@ export default async function JoinRequestsPage() {
         </p>
       </div>
 
-      <JoinRequestsClient initialRequests={requests} verifierId={session.userId} />
+      <JoinRequestsClient 
+        initialRequests={requests} 
+        totalCount={totalCount}
+        page={page}
+        pageSize={pageSize}
+        search={search}
+      />
     </div>
   );
 }

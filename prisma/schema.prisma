@@ -93,6 +93,8 @@ model Member {
   gender        Gender
   maritalStatus String?
   isAlive       Boolean  @default(true)
+  removalReason String?
+  removedAt     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -109,6 +111,8 @@ model User {
   ghatak       Ghatak?       @relation(fields: [ghatakId], references: [id])
   pradeshikId  String?
   pradeshik    Pradeshik?    @relation(fields: [pradeshikId], references: [id])
+  consentGivenAt DateTime?
+  policyVersion  String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   auditLogs    AuditLog[]
@@ -119,7 +123,8 @@ model User {
 model VerificationCode {
   id           String   @id @default(uuid())
   mobileNumber String
-  code         String
+  code         String   // SHA-256 hash
+  attempts     Int      @default(0)
   expiresAt    DateTime
   createdAt    DateTime @default(now())
 }
@@ -191,6 +196,22 @@ model JoinRequest {
   indiaHometown String
   kutchVillage  String
   status        RequestStatus @default(PENDING)
+  consentGivenAt DateTime?
+  policyVersion  String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model OtpRateLimit {
+  id           String   @id @default(uuid())
+  mobileNumber String   @unique
+  attempts     Int      @default(0)
+  lastAttempt  DateTime @default(now())
+}
+
+model IpRateLimit {
+  id          String   @id @default(uuid())
+  ip          String   @unique
+  attempts    Int      @default(0)
+  lastAttempt DateTime @default(now())
 }

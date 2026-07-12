@@ -172,6 +172,10 @@ export async function getParsedSeedData() {
 }
 
 export async function confirmAndSeedAction(families: any[]) {
+  if (process.env.ALLOW_SEED !== 'true') {
+    return { error: 'Database seeding is disabled. Set ALLOW_SEED=true to seed.' };
+  }
+
   try {
     let importedCount = 0;
     

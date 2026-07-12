@@ -4,6 +4,11 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.ALLOW_SEED !== 'true') {
+    console.error('ERROR: Database seeding is disabled. Set ALLOW_SEED=true in your environment.');
+    process.exit(1);
+  }
+
   console.log('Starting seed process...');
 
   // 1. Clean existing records

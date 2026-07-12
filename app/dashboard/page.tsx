@@ -55,6 +55,8 @@ export default async function DashboardOverview() {
   if (user.role === 'USER') {
     // FAMILY USER VIEW
     const family = user.family;
+    const globalFamiliesCount = await prisma.family.count();
+    const globalMembersCount = await prisma.member.count({ where: { isAlive: true } });
 
     if (!family) {
       return (
@@ -121,6 +123,26 @@ export default async function DashboardOverview() {
           </div>
         </div>
 
+        {/* Global Samaj Census Status */}
+        <div className="bg-[#FAF7F2]/50 p-5 rounded-lg border border-[#E5DDD0] space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[#8B5E3C]" />
+            <h4 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">
+              Samaj Census Growth Metrics
+            </h4>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded border border-[#E5DDD0]/50 flex justify-between items-center text-xs">
+              <span className="text-[#6A5B4D]">Total Enrolled Families Globally</span>
+              <span className="font-bold text-[#8B5E3C] text-sm">{globalFamiliesCount}</span>
+            </div>
+            <div className="bg-white p-4 rounded border border-[#E5DDD0]/50 flex justify-between items-center text-xs">
+              <span className="text-[#6A5B4D]">Total Active Members Globally</span>
+              <span className="font-bold text-[#8B5E3C] text-sm">{globalMembersCount}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Quick Actions Grid */}
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-[#6A5B4D] uppercase tracking-wider">Quick Actions</h2>
@@ -156,19 +178,34 @@ export default async function DashboardOverview() {
   }
 
   // ADMIN VIEW DATA PREP
+  let familyFilter = {};
+  let memberFilter: any = { isAlive: true };
+  let requestFilter: any = { status: 'PENDING' };
+
+  if (user.role === 'GHATAK_ADMIN') {
+    familyFilter = { ghatakId: user.ghatakId || 'null-ghatak-id' };
+    memberFilter = { isAlive: true, family: { ghatakId: user.ghatakId || 'null-ghatak-id' } };
+    requestFilter = { status: 'PENDING', family: { ghatakId: user.ghatakId || 'null-ghatak-id' } };
+  } else if (user.role === 'PRADESHIK_ADMIN') {
+    familyFilter = { pradeshikId: user.pradeshikId || 'null-pradeshik-id' };
+    memberFilter = { isAlive: true, family: { pradeshikId: user.pradeshikId || 'null-pradeshik-id' } };
+    requestFilter = { status: 'PENDING', family: { pradeshikId: user.pradeshikId || 'null-pradeshik-id' } };
+  } else if (user.role === 'NRI_ADMIN') {
+    familyFilter = { familyId: { startsWith: 'KG-NRI-' } };
+    memberFilter = { isAlive: true, family: { familyId: { startsWith: 'KG-NRI-' } } };
+    requestFilter = { status: 'PENDING', family: { familyId: { startsWith: 'KG-NRI-' } } };
+  }
+
   const totalFamilies = await prisma.family.count({
-    where: user.role === 'GHATAK_ADMIN' ? { ghatakId: user.ghatakId || undefined } : undefined,
+    where: familyFilter,
   });
 
   const totalMembers = await prisma.member.count({
-    where: user.role === 'GHATAK_ADMIN' ? { family: { ghatakId: user.ghatakId || undefined } } : undefined,
+    where: memberFilter,
   });
 
   const pendingRequests = await prisma.updateRequest.findMany({
-    where: {
-      status: 'PENDING',
-      family: user.role === 'GHATAK_ADMIN' ? { ghatakId: user.ghatakId || undefined } : undefined,
-    },
+    where: requestFilter,
     include: {
       family: true,
       requester: true,
@@ -272,7 +309,7 @@ export default async function DashboardOverview() {
   if (user.role === 'PRADESHIK_ADMIN') {
     // PRADESHIK ADMIN VIEW
     const pradeshikGhataks = await prisma.ghatak.findMany({
-      where: { pradeshikId: user.pradeshikId || undefined },
+      where: { pradeshikId: user.pradeshikId || 'null-pradeshik-id' },
       include: {
         families: true,
       }

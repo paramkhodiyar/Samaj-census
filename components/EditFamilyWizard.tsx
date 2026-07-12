@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, startTransition } from 'react';
+import React, { useState, startTransition, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/context/I18nContext';
 import { submitCorrectionRequest } from '@/app/actions/requests';
 import { toast } from 'sonner';
+import { useConfirm } from '@/context/ConfirmContext';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -39,11 +40,12 @@ interface EditFamilyWizardProps {
 export default function EditFamilyWizard({ family, userId }: EditFamilyWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const confirm = useConfirm();
   
   // Set initial step based on URL query param if present
   const stepParam = searchParams.get('step');
   const initialStep = stepParam ? parseInt(stepParam, 10) : 1;
-  const [step, setStep] = useState(initialStep >= 1 && initialStep <= 7 ? initialStep : 1);
+  const [step, setStep] = useState(initialStep >= 1 && initialStep <= 6 ? initialStep : 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { t } = useTranslation();
@@ -97,16 +99,80 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
     reason: string;
   }>>([]);
 
-  // Step 5 State: Other Corrections
+  // Step 5 State: Member Corrections
+  const [memberCorrections, setMemberCorrections] = useState<Array<{
+    memberId: string;
+    memberName: string;
+    fieldName: string;
+    oldValue: string;
+    newValue: string;
+  }>>([]);
+  const [selectedCorrMemberId, setSelectedCorrMemberId] = useState('');
+  const [selectedCorrField, setSelectedCorrField] = useState('name');
+  const [corrNewValue, setCorrNewValue] = useState('');
   const [otherCorrections, setOtherCorrections] = useState('');
 
-  // Step 6 State: Documents
-  const [documents, setDocuments] = useState<Array<{ name: string; fileUrl: string }>>([]);
-  const [docForm, setDocForm] = useState({ name: '', fileUrl: '' });
+  // Load Draft from LocalStorage on mount
+  useEffect(() => {
+    const draftKey = `samaj_census_edit_draft_${family.id}`;
+    const rawDraft = localStorage.getItem(draftKey);
+    if (rawDraft) {
+      try {
+        const draft = JSON.parse(rawDraft);
+        
+        confirm({
+          title: 'Restore Census Draft',
+          message: 'We found an unsaved draft of corrections for your family. Do you want to restore your progress?',
+        }).then((restore) => {
+          if (restore) {
+            if (draft.familyInfo) setFamilyInfo(draft.familyInfo);
+            if (draft.addMembers) setAddMembers(draft.addMembers);
+            if (draft.removeMembers) setRemoveMembers(draft.removeMembers);
+            if (draft.transferMembers) setTransferMembers(draft.transferMembers);
+            if (draft.memberCorrections) setMemberCorrections(draft.memberCorrections);
+            if (draft.otherCorrections) setOtherCorrections(draft.otherCorrections);
+            toast.success('Draft restored successfully');
+          } else {
+            localStorage.removeItem(draftKey);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to parse draft:', err);
+      }
+    }
+  }, [family.id]);
+
+  // Save Draft to LocalStorage whenever compilation changes
+  useEffect(() => {
+    const draftKey = `samaj_census_edit_draft_${family.id}`;
+    
+    const hasChanges = 
+      familyInfo.address !== (family.address || '') ||
+      familyInfo.nativeVillage !== (family.nativeVillage || '') ||
+      familyInfo.mobile !== (family.mobile || '') ||
+      addMembers.length > 0 ||
+      removeMembers.length > 0 ||
+      transferMembers.length > 0 ||
+      memberCorrections.length > 0 ||
+      otherCorrections.trim().length > 0;
+
+    if (hasChanges) {
+      localStorage.setItem(draftKey, JSON.stringify({
+        familyInfo,
+        addMembers,
+        removeMembers,
+        transferMembers,
+        memberCorrections,
+        otherCorrections
+      }));
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, [familyInfo, addMembers, removeMembers, transferMembers, memberCorrections, otherCorrections, family]);
 
   // Wizard Navigation
   const handleNext = () => {
-    if (step < 7) setStep(step + 1);
+    if (step < 6) setStep(step + 1);
   };
 
   const handleBack = () => {
@@ -162,33 +228,58 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
     toast.success(`Transfer requested for ${memberName}`);
   };
 
-  // Add Document
-  const handleAddDoc = () => {
-    if (!docForm.name || !docForm.fileUrl) {
-      toast.error('Please specify document type/name and attach a file URL');
+  // Add Member Detail Correction
+  const handleAddCorrection = () => {
+    if (!selectedCorrMemberId || !corrNewValue.trim()) {
+      toast.error('Please select a member and enter a corrected value');
       return;
     }
-    setDocuments([...documents, docForm]);
-    setDocForm({ name: '', fileUrl: '' });
-    toast.success('Document uploaded successfully');
+    const member = family.members.find(m => m.id === selectedCorrMemberId);
+    if (!member) return;
+
+    // Filter out existing corrections for the same member & field
+    const cleanCorrections = memberCorrections.filter(
+      c => !(c.memberId === selectedCorrMemberId && c.fieldName === selectedCorrField)
+    );
+    const oldValue = String((member as any)[selectedCorrField] || '');
+
+    setMemberCorrections([
+      ...cleanCorrections,
+      {
+        memberId: selectedCorrMemberId,
+        memberName: member.name,
+        fieldName: selectedCorrField,
+        oldValue,
+        newValue: corrNewValue.trim(),
+      }
+    ]);
+    setCorrNewValue('');
+    toast.success(`Correction listed for ${member.name}`);
   };
 
   // Submit Request
   const handleSubmit = async () => {
+    const isConfirmed = await confirm({
+      title: 'Submit Update Request',
+      message: 'Please review all correction steps before submitting. Proposing incorrect census details is subject to Samaj Committee verification. Do you want to submit this request?',
+    });
+    if (!isConfirmed) return;
+
     setIsSubmitting(true);
-    const result = await submitCorrectionRequest(family.id, userId, {
+    const result = await submitCorrectionRequest({
       familyInfo,
       addMembers,
       removeMembers,
       transferMembers,
-      otherCorrections,
-      documents,
+      memberCorrections,
+      otherCorrections: otherCorrections.trim() || undefined,
     });
     setIsSubmitting(false);
 
     if (result?.error) {
       toast.error(result.error);
     } else if (result?.success) {
+      localStorage.removeItem(`samaj_census_edit_draft_${family.id}`);
       toast.success('Correction request submitted successfully! Pending admin approval.');
       startTransition(() => {
         router.push('/dashboard/requests');
@@ -203,7 +294,6 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
     t('step4'),
     t('step5'),
     t('step6'),
-    t('step7'),
   ];
 
   return (
@@ -589,84 +679,106 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
             </div>
           )}
 
-          {/* STEP 5: Other Corrections */}
+          {/* STEP 5: Member Details Corrections */}
           {step === 5 && (
-            <div className="space-y-4 max-w-lg">
-              <p className="text-xs text-[#6A5B4D] leading-relaxed">
-                Describe any other discrepancies on details such as names, spelling corrections, occupations, blood groups, etc.
-              </p>
-              <div>
-                <label className="block text-xs font-bold text-[#6A5B4D] uppercase tracking-wider mb-1.5">
-                  Corrections Description
-                </label>
-                <textarea
-                  rows={6}
-                  value={otherCorrections}
-                  onChange={(e) => setOtherCorrections(e.target.value)}
-                  placeholder="Specify spelling fixes, blood groups correction, or educational field adjustments."
-                  className="px-3 py-2 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#8B5E3C]"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 6: Photos & Documents */}
-          {step === 6 && (
             <div className="space-y-6">
               <p className="text-xs text-[#6A5B4D] leading-relaxed">
-                Upload scans or photographs of verification documents (Aadhaar Cards, certificates, family photo) to support verification.
+                Select a member and specify corrections for particular fields. These corrections will be applied automatically upon admin approval.
               </p>
 
-              <div className="bg-[#FAF7F2] p-4 rounded border border-[#E5DDD0] max-w-md text-xs space-y-4">
+              {/* Add Correction Box */}
+              <div className="bg-[#FAF7F2] p-4 rounded border border-[#E5DDD0] max-w-lg text-xs space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-[#6A5B4D] mb-1.5">Select Family Member</label>
+                    <select
+                      value={selectedCorrMemberId}
+                      onChange={(e) => {
+                        setSelectedCorrMemberId(e.target.value);
+                        setCorrNewValue('');
+                      }}
+                      className="px-2.5 py-1.5 w-full bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none"
+                    >
+                      <option value="">-- Choose Member --</option>
+                      {family.members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({m.relation})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#6A5B4D] mb-1.5">Select Field to Correct</label>
+                    <select
+                      value={selectedCorrField}
+                      onChange={(e) => {
+                        setSelectedCorrField(e.target.value);
+                        setCorrNewValue('');
+                      }}
+                      className="px-2.5 py-1.5 w-full bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none"
+                    >
+                      <option value="name">Full Name</option>
+                      <option value="age">Age</option>
+                      <option value="occupation">Occupation</option>
+                      <option value="education">Education</option>
+                      <option value="bloodGroup">Blood Group</option>
+                      <option value="mobile">Mobile Number</option>
+                    </select>
+                  </div>
+                </div>
+
+                {selectedCorrMemberId && (
+                  <div className="p-3 bg-white rounded border border-[#E5DDD0]/50 text-xs">
+                    <span className="text-[10px] font-bold text-[#6A5B4D] uppercase">Current Value in Census Database:</span>
+                    <p className="font-semibold text-[#8B5E3C] mt-0.5">
+                      {String((family.members.find(m => m.id === selectedCorrMemberId) as any)?.[selectedCorrField] || 'Empty')}
+                    </p>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block font-bold text-[#6A5B4D] mb-1">Document Name</label>
+                  <label className="block font-bold text-[#6A5B4D] mb-1.5">Corrected Value</label>
                   <input
                     type="text"
-                    value={docForm.name}
-                    onChange={(e) => setDocForm({ ...docForm, name: e.target.value })}
-                    placeholder="e.g. Aadhaar Card - Rohan"
-                    className="px-3 py-2 w-full bg-white border border-[#E5DDD0] rounded focus:outline-none"
+                    value={corrNewValue}
+                    onChange={(e) => setCorrNewValue(e.target.value)}
+                    placeholder="Enter the correct spelling/value"
+                    className="px-3 py-2 w-full bg-white border border-[#E5DDD0] rounded focus:outline-none text-xs"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-[#6A5B4D] mb-1">Document File URL (Simulated Link)</label>
-                  <input
-                    type="text"
-                    value={docForm.fileUrl}
-                    onChange={(e) => setDocForm({ ...docForm, fileUrl: e.target.value })}
-                    placeholder="e.g. https://files.samaj.org/docs/aadhaar.jpg"
-                    className="px-3 py-2 w-full bg-white border border-[#E5DDD0] rounded focus:outline-none"
-                  />
-                </div>
+
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={handleAddDoc}
-                    className="px-3.5 py-2 bg-[#B08968] text-white hover:bg-[#977150] rounded font-semibold flex items-center gap-1.5"
+                    onClick={handleAddCorrection}
+                    className="px-4 py-2 bg-[#8B5E3C] hover:bg-[#704A2E] text-white rounded font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Attach Document
+                    <Plus className="w-4 h-4" />
+                    Add Correction
                   </button>
                 </div>
               </div>
 
-              {documents.length > 0 && (
+              {/* Table of Corrections */}
+              {memberCorrections.length > 0 && (
                 <div className="space-y-2 text-xs">
-                  <h4 className="font-bold text-[#6A5B4D] uppercase tracking-wider">Uploaded Documents</h4>
-                  <div className="divide-y divide-[#E5DDD0] border border-[#E5DDD0] rounded bg-white">
-                    {documents.map((d, idx) => (
-                      <div key={idx} className="p-3 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <FolderOpen className="w-4 h-4 text-[#8B5E3C]" />
-                          <div>
-                            <span className="font-bold text-[#2D2D2D]">{d.name}</span>
-                            <span className="text-[10px] text-blue-600 block hover:underline truncate max-w-xs">{d.fileUrl}</span>
-                          </div>
+                  <h4 className="font-bold text-[#6A5B4D] uppercase tracking-wider">Proposed Member Corrections</h4>
+                  <div className="border border-[#E5DDD0] rounded overflow-hidden bg-white divide-y divide-[#E5DDD0]">
+                    {memberCorrections.map((c, idx) => (
+                      <div key={idx} className="p-3 flex justify-between items-center text-xs">
+                        <div>
+                          <p className="font-bold text-[#2D2D2D]">{c.memberName}</p>
+                          <p className="text-[10px] text-[#6A5B4D] mt-0.5">
+                            Correct <span className="font-bold text-[#8B5E3C] uppercase">{c.fieldName}</span>: 
+                            <span className="line-through text-red-500 mx-1">"{c.oldValue || 'Empty'}"</span> → 
+                            <span className="text-emerald-600 font-semibold ml-1">"{c.newValue}"</span>
+                          </p>
                         </div>
                         <button
                           type="button"
-                          onClick={() => setDocuments(documents.filter((_, i) => i !== idx))}
-                          className="text-red-600 hover:text-red-800 p-1"
+                          onClick={() => setMemberCorrections(memberCorrections.filter((_, i) => i !== idx))}
+                          className="text-red-600 hover:text-red-800 p-1 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -675,11 +787,25 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
                   </div>
                 </div>
               )}
+
+              {/* Optional general other corrections text */}
+              <div className="max-w-lg border-t border-[#E5DDD0]/60 pt-4">
+                <label className="block text-xs font-bold text-[#6A5B4D] uppercase tracking-wider mb-1.5">
+                  Other Unstructured Notes (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={otherCorrections}
+                  onChange={(e) => setOtherCorrections(e.target.value)}
+                  placeholder="Specify any general comments or unstructured notes here..."
+                  className="px-3 py-2 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#8B5E3C]"
+                />
+              </div>
             </div>
           )}
 
-          {/* STEP 7: Review & Submit */}
-          {step === 7 && (
+          {/* STEP 6: Review & Submit */}
+          {step === 6 && (
             <div className="space-y-6">
               <p className="text-xs text-[#6A5B4D] font-medium">
                 {t('reviewHeading')}
@@ -756,29 +882,25 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
                   )}
                 </div>
 
-                {/* Other summary */}
+                {/* Member Corrections summary */}
                 <div className="p-4 space-y-2 bg-[#FAF7F2]/20">
-                  <h4 className="font-bold text-[#8B5E3C] uppercase tracking-wider">Step 5: Other Corrections</h4>
-                  {otherCorrections.trim() ? (
-                    <p className="text-[#2D2D2D] font-medium">{otherCorrections}</p>
-                  ) : (
-                    <p className="text-[#6A5B4D] italic">{t('noChanges')}</p>
-                  )}
-                </div>
-
-                {/* Docs summary */}
-                <div className="p-4 space-y-2">
-                  <h4 className="font-bold text-[#8B5E3C] uppercase tracking-wider">Step 6: Attached Documents</h4>
-                  {documents.length === 0 ? (
+                  <h4 className="font-bold text-[#8B5E3C] uppercase tracking-wider">Step 5: Member Corrections</h4>
+                  {memberCorrections.length === 0 ? (
                     <p className="text-[#6A5B4D] italic">{t('noChanges')}</p>
                   ) : (
-                    <ul className="list-disc list-inside text-xs space-y-1.5 text-blue-600">
-                      {documents.map((d, idx) => (
-                        <li key={idx} className="hover:underline cursor-pointer">
-                          {d.name} ({d.fileUrl})
+                    <ul className="list-disc list-inside text-xs space-y-1.5">
+                      {memberCorrections.map((c, idx) => (
+                        <li key={idx}>
+                          <strong>{c.memberName}</strong>: Correct {c.fieldName} from "{c.oldValue || 'Empty'}" to "{c.newValue}"
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {otherCorrections.trim() && (
+                    <div className="mt-2 text-xs">
+                      <span className="font-bold text-[#6A5B4D] uppercase">General Notes:</span>
+                      <p className="text-[#2D2D2D] italic mt-0.5">"{otherCorrections}"</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -798,7 +920,7 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
             {t('back')}
           </button>
           
-          {step < 7 ? (
+          {step < 6 ? (
             <button
               type="button"
               onClick={handleNext}
