@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import ProfileClientForm from '../../../components/ProfileClientForm';
+import DpdpProfileActions from '@/components/DpdpProfileActions';
 import { format } from 'date-fns';
 import { User, Phone, Shield, FileText, Award } from 'lucide-react';
 
@@ -80,8 +81,11 @@ export default async function ProfilePage() {
 
           {/* Change Password Form (Client-side interactivity) */}
           <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm">
-            <ProfileClientForm userId={user.id} />
+            <ProfileClientForm />
           </div>
+
+          {/* DPDP Compliance Card */}
+          <DpdpProfileActions />
 
           {/* About App Portal credits */}
           <div className="bg-white p-6 rounded-lg border-2 border-double border-[#8B5E3C] shadow-sm text-center space-y-3 relative overflow-hidden">

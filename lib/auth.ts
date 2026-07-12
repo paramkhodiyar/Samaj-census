@@ -1,8 +1,20 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET_STR = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-32-chars-long';
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STR);
+const JWT_SECRET_STR = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET_STR = process.env.JWT_REFRESH_SECRET;
+
+if (process.env.NODE_ENV === 'production') {
+  if (!JWT_SECRET_STR) {
+    throw new Error('FATAL: JWT_SECRET environment variable is missing in production!');
+  }
+  if (!JWT_REFRESH_SECRET_STR) {
+    throw new Error('FATAL: JWT_REFRESH_SECRET environment variable is missing in production!');
+  }
+}
+
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STR || 'fallback-secret-for-dev-only-32-chars-long');
+const JWT_REFRESH_SECRET = new TextEncoder().encode(JWT_REFRESH_SECRET_STR || 'fallback-refresh-secret-for-dev-only-32-chars');
 
 export interface TokenPayload {
   userId: string;
@@ -11,7 +23,6 @@ export interface TokenPayload {
 }
 
 export async function signToken(payload: TokenPayload): Promise<string> {
-  // jose SignJWT expects an object and returns a promise
   return new SignJWT({ 
     userId: payload.userId,
     role: payload.role,
@@ -32,12 +43,25 @@ export async function signRefreshToken(payload: TokenPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(JWT_REFRESH_SECRET); // Uses separate refresh secret
 }
 
 export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    return {
+      userId: payload.userId as string,
+      role: payload.role as string,
+      mobileNumber: payload.mobileNumber as string,
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function verifyRefreshToken(token: string): Promise<TokenPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_REFRESH_SECRET);
     return {
       userId: payload.userId as string,
       role: payload.role as string,

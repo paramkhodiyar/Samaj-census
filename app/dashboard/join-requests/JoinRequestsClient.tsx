@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { approveJoinRequestAction, rejectJoinRequestAction } from '@/app/actions/join-request';
 import { 
   User, 
@@ -35,15 +36,37 @@ type JoinRequest = {
 
 export default function JoinRequestsClient({
   initialRequests,
-  verifierId,
+  totalCount,
+  page,
+  pageSize,
+  search: initialSearch,
 }: {
   initialRequests: any[];
-  verifierId: string;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  search: string;
 }) {
+  const router = useRouter();
   const [requests, setRequests] = useState<JoinRequest[]>(initialRequests as JoinRequest[]);
   const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+  const [search, setSearch] = useState(initialSearch);
   const [isPendingAction, startTransition] = useTransition();
   const confirm = useConfirm();
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/dashboard/join-requests?page=1&search=${encodeURIComponent(search)}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`/dashboard/join-requests?page=${newPage}&search=${encodeURIComponent(search)}`);
+  };
+
+  // Sync initialRequests when server prop changes (due to pagination/search)
+  React.useEffect(() => {
+    setRequests(initialRequests as JoinRequest[]);
+  }, [initialRequests]);
 
   const filteredRequests = requests.filter(req => req.status === activeTab);
 
@@ -56,7 +79,7 @@ export default function JoinRequestsClient({
     if (!isConfirmed) return;
 
     startTransition(async () => {
-      const result = await approveJoinRequestAction(id, verifierId);
+      const result = await approveJoinRequestAction(id);
       if (result?.error) {
         toast.error(result.error);
       } else if (result?.success) {
@@ -77,7 +100,7 @@ export default function JoinRequestsClient({
     if (!isConfirmed) return;
 
     startTransition(async () => {
-      const result = await rejectJoinRequestAction(id, verifierId);
+      const result = await rejectJoinRequestAction(id);
       if (result?.error) {
         toast.error(result.error);
       } else if (result?.success) {
@@ -91,6 +114,23 @@ export default function JoinRequestsClient({
 
   return (
     <div className="space-y-6">
+      {/* Search Bar */}
+      <form onSubmit={handleSearchSubmit} className="flex gap-2 max-w-md">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, mobile, city..."
+          className="flex-1 px-3 py-2 bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#8B5E3C]"
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-[#8B5E3C] hover:bg-[#704A2E] text-white font-semibold text-xs rounded transition-colors cursor-pointer"
+        >
+          Search
+        </button>
+      </form>
+
       {/* Tabs */}
       <div className="flex border-b border-[#E5DDD0]">
         {(['PENDING', 'APPROVED', 'REJECTED'] as const).map((tab) => (
@@ -208,6 +248,31 @@ export default function JoinRequestsClient({
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalCount > pageSize && (
+        <div className="flex justify-between items-center pt-4 border-t border-[#E5DDD0] text-xs text-[#6A5B4D]">
+          <span>
+            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} requests
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1}
+              className="px-3 py-1.5 border border-[#E5DDD0] rounded hover:bg-[#FAF7F2] disabled:opacity-50 disabled:hover:bg-transparent cursor-pointer"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page * pageSize >= totalCount}
+              className="px-3 py-1.5 border border-[#E5DDD0] rounded hover:bg-[#FAF7F2] disabled:opacity-50 disabled:hover:bg-transparent cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

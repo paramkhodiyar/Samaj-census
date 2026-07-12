@@ -2,21 +2,42 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { useTranslation } from '@/context/I18nContext';
-import { Users, Home, GraduationCap, Briefcase, Calendar, Heart } from 'lucide-react';
+import { Users, Home } from 'lucide-react';
+import { requireRole } from '@/lib/authz';
+import StatsChartsClient from '@/components/StatsChartsClient';
 
 export default async function StatsPage() {
   const session = await getAuthSession();
+  requireRole(session, ['SUPER_ADMIN', 'PRADESHIK_ADMIN', 'GHATAK_ADMIN', 'NRI_ADMIN']);
 
-  if (!session) {
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user) {
     redirect('/login');
   }
 
-  // 1. Fetch real counts
-  const familyCount = await prisma.family.count();
-  const memberCount = await prisma.member.count();
+  // Define filters based on role
+  let familyFilter = {};
+  let memberFilter: any = { isAlive: true };
 
-  // 2. Fetch all members to compute distributions dynamically
+  if (user.role === 'GHATAK_ADMIN') {
+    familyFilter = { ghatakId: user.ghatakId || 'null-ghatak-id' };
+    memberFilter = { isAlive: true, family: { ghatakId: user.ghatakId || 'null-ghatak-id' } };
+  } else if (user.role === 'PRADESHIK_ADMIN') {
+    familyFilter = { pradeshikId: user.pradeshikId || 'null-pradeshik-id' };
+    memberFilter = { isAlive: true, family: { pradeshikId: user.pradeshikId || 'null-pradeshik-id' } };
+  } else if (user.role === 'NRI_ADMIN') {
+    familyFilter = { familyId: { startsWith: 'KG-NRI-' } };
+    memberFilter = { isAlive: true, family: { familyId: { startsWith: 'KG-NRI-' } } };
+  }
+
+  // 1. Fetch real counts
+  const familyCount = await prisma.family.count({ where: familyFilter });
+  const memberCount = await prisma.member.count({ where: memberFilter });
+
+  // 2. Fetch all members within scope to compute distributions dynamically
   const members = await prisma.member.findMany({
     select: {
       gender: true,
@@ -25,7 +46,7 @@ export default async function StatsPage() {
       occupation: true,
       isAlive: true,
     },
-    where: { isAlive: true }
+    where: memberFilter
   });
 
   // Calculate Gender Distribution
@@ -87,6 +108,33 @@ export default async function StatsPage() {
     }))
     .sort((a, b) => b.count - a.count);
 
+  // Map structures for StatsChartsClient
+  const genderData = [
+    { name: 'Male', value: maleCount, percent: malePercent },
+    { name: 'Female', value: femaleCount, percent: femalePercent },
+  ];
+  if (otherCount > 0) {
+    genderData.push({ name: 'Other', value: otherCount, percent: otherPercent });
+  }
+
+  const ageData = ageGroups.map(g => ({
+    name: g.label,
+    value: g.count,
+    percent: g.percent
+  }));
+
+  const educationData = educationLevels.map(e => ({
+    name: e.label,
+    value: e.count,
+    percent: e.percent
+  }));
+
+  const occupationData = occupations.map(o => ({
+    name: o.label,
+    value: o.count,
+    percent: o.percent
+  }));
+
   return (
     <div className="space-y-6">
       
@@ -96,7 +144,7 @@ export default async function StatsPage() {
           Community Census Analytics
         </h1>
         <p className="text-sm text-[#6A5B4D] mt-1">
-          Dynamic census distribution data of Shri Kutch Gurjar Kshatriya Samaj.
+          Interactive demographics data and distributions of Shri Kutch Gurjar Kshatriya Samaj.
         </p>
       </div>
 
@@ -123,97 +171,13 @@ export default async function StatsPage() {
         </div>
       </div>
 
-      {/* Distribution Grids */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Gender Distribution */}
-        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider border-b border-[#FAF7F2] pb-2 flex items-center gap-2">
-            <Heart className="w-4 h-4 text-[#8B5E3C]" />
-            Gender Distribution
-          </h3>
-          <div className="space-y-3.5 text-xs">
-            <ProgressBar label="Male" count={maleCount} percent={malePercent} color="bg-[#8B5E3C]" />
-            <ProgressBar label="Female" count={femaleCount} percent={femalePercent} color="bg-[#B08968]" />
-            {otherCount > 0 && <ProgressBar label="Other" count={otherCount} percent={otherPercent} color="bg-[#D4A373]" />}
-          </div>
-        </div>
-
-        {/* Age Groups */}
-        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider border-b border-[#FAF7F2] pb-2 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#8B5E3C]" />
-            Age Distribution
-          </h3>
-          <div className="space-y-3.5 text-xs">
-            {ageGroups.map((group) => (
-              <ProgressBar
-                key={group.label}
-                label={group.label}
-                count={group.count}
-                percent={group.percent}
-                color={group.color}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Education Distribution */}
-        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider border-b border-[#FAF7F2] pb-2 flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-[#8B5E3C]" />
-            Education Level Distribution
-          </h3>
-          <div className="space-y-3.5 text-xs">
-            {educationLevels.map((edu) => (
-              <ProgressBar
-                key={edu.label}
-                label={edu.label}
-                count={edu.count}
-                percent={edu.percent}
-                color="bg-[#B08968]"
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Occupations Distribution */}
-        <div className="bg-white p-6 rounded-lg border border-[#E5DDD0] shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider border-b border-[#FAF7F2] pb-2 flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-[#8B5E3C]" />
-            Occupation Distribution
-          </h3>
-          <div className="space-y-3.5 text-xs">
-            {occupations.map((occ) => (
-              <ProgressBar
-                key={occ.label}
-                label={occ.label}
-                count={occ.count}
-                percent={occ.percent}
-                color="bg-[#D4A373]"
-              />
-            ))}
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-// Sub-Component: ProgressBar
-function ProgressBar({ label, count, percent, color }: { label: string; count: number; percent: number; color: string }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between font-semibold">
-        <span className="text-[#2D2D2D]">{label}</span>
-        <span className="text-[#6A5B4D]">
-          {count} ({percent}%)
-        </span>
-      </div>
-      <div className="h-2 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${percent}%` }}></div>
-      </div>
+      {/* Interactive Charts Client Component */}
+      <StatsChartsClient
+        genderData={genderData}
+        ageData={ageData}
+        educationData={educationData}
+        occupationData={occupationData}
+      />
     </div>
   );
 }

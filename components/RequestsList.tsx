@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/context/I18nContext';
 import { processCorrectionRequest } from '@/app/actions/requests';
 import { toast } from 'sonner';
+import { useConfirm } from '@/context/ConfirmContext';
 import { 
   FileText, 
   CheckCircle, 
@@ -52,14 +53,37 @@ interface RequestsListProps {
   requests: RequestItem[];
   isAdmin: boolean;
   userId: string;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  search: string;
 }
 
-export default function RequestsList({ requests, isAdmin, userId }: RequestsListProps) {
+export default function RequestsList({ 
+  requests, 
+  isAdmin, 
+  userId,
+  totalCount,
+  page,
+  pageSize,
+  search: initialSearch,
+}: RequestsListProps) {
   const router = useRouter();
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(null);
   const [comment, setComment] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [search, setSearch] = useState(initialSearch);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/dashboard/requests?page=1&search=${encodeURIComponent(search)}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`/dashboard/requests?page=${newPage}&search=${encodeURIComponent(search)}`);
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -95,8 +119,14 @@ export default function RequestsList({ requests, isAdmin, userId }: RequestsList
       return;
     }
 
+    const isConfirmed = await confirm({
+      title: `${status === 'APPROVED' ? 'Approve' : status === 'REJECTED' ? 'Reject' : 'Request Correction'} Update`,
+      message: `Are you sure you want to mark this request as ${status.toLowerCase()}? This action is logged for audit purposes.`,
+    });
+    if (!isConfirmed) return;
+
     setIsProcessing(true);
-    const result = await processCorrectionRequest(selectedRequest.id, status, comment || null, userId);
+    const result = await processCorrectionRequest(selectedRequest.id, status, comment || null);
     setIsProcessing(false);
 
     if (result?.error) {
@@ -119,10 +149,25 @@ export default function RequestsList({ requests, isAdmin, userId }: RequestsList
         <div className={`bg-white rounded-lg border border-[#E5DDD0] shadow-sm overflow-hidden ${
           selectedRequest ? 'lg:col-span-1' : 'lg:col-span-3'
         }`}>
-          <div className="p-4 bg-[#FAF7F2] border-b border-[#E5DDD0]">
+          <div className="p-4 bg-[#FAF7F2] border-b border-[#E5DDD0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-sm font-bold text-[#6A5B4D] uppercase tracking-wider">
               {isAdmin ? 'Verification Requests Queue' : 'My Correction Requests'}
             </h2>
+            <form onSubmit={handleSearchSubmit} className="flex gap-1 shrink-0">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="px-2 py-1 bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#8B5E3C] w-40"
+              />
+              <button
+                type="submit"
+                className="px-2.5 py-1 bg-[#8B5E3C] hover:bg-[#704A2E] text-white font-semibold text-[10px] rounded transition-colors cursor-pointer"
+              >
+                Go
+              </button>
+            </form>
           </div>
 
           <div className="divide-y divide-[#E5DDD0]">
@@ -161,6 +206,28 @@ export default function RequestsList({ requests, isAdmin, userId }: RequestsList
               ))
             )}
           </div>
+          {/* Pagination */}
+          {totalCount > pageSize && (
+            <div className="p-4 bg-[#FAF7F2] border-t border-[#E5DDD0] flex justify-between items-center text-xs text-[#6A5B4D]">
+              <span>Page {page} of {Math.ceil(totalCount / pageSize)}</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                  className="px-2 py-1 border border-[#E5DDD0] rounded bg-white hover:bg-[#FAF7F2] disabled:opacity-50 disabled:hover:bg-white cursor-pointer"
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page * pageSize >= totalCount}
+                  className="px-2 py-1 border border-[#E5DDD0] rounded bg-white hover:bg-[#FAF7F2] disabled:opacity-50 disabled:hover:bg-white cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Request Details & Side-by-Side Review */}
