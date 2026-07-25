@@ -247,12 +247,15 @@ export async function sendOtpAction(mobileNumber: string) {
       });
     }
 
-    // 2. Mobile Rate Limiting (Max 3 OTP sends per phone number per 15 minutes)
+    // 2. Account / Input Rate Limiting (Max 10 OTP sends per identifier per 15 minutes)
+    const isEmailInput = mobileNumber.includes('@');
     const mobileLimit = await prisma.otpRateLimit.findUnique({ where: { mobileNumber } });
     if (mobileLimit) {
       if (mobileLimit.lastAttempt > fifteenMinsAgo) {
-        if (mobileLimit.attempts >= 3) {
-          return { error: 'Too many requests for this phone number. Please try again after 15 minutes.' };
+        if (mobileLimit.attempts >= 10) {
+          return {
+            error: `Too many verification requests for this ${isEmailInput ? 'email address' : 'phone number'}. Please wait a few minutes before trying again.`,
+          };
         }
         await prisma.otpRateLimit.update({
           where: { mobileNumber },
