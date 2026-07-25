@@ -246,7 +246,7 @@ export default function FamilyEnrollmentWizard({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-            <div>
+            <div className="min-w-0">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
                 Family Head Full Name *
               </label>
@@ -261,7 +261,7 @@ export default function FamilyEnrollmentWizard({
             </div>
 
             {/* Country Selector with Flags & Other option */}
-            <div>
+            <div className="min-w-0">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
                 Country of Residence *
               </label>
@@ -278,7 +278,7 @@ export default function FamilyEnrollmentWizard({
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
                 Current Residence City *
               </label>
@@ -287,12 +287,12 @@ export default function FamilyEnrollmentWizard({
                 required
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Nairobi, London, Chicago, Ahmedabad"
+                placeholder="e.g. Nairobi, London, Chicago, Nairobi"
                 className="w-full p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
                 Native Village in Kutch *
               </label>
@@ -307,49 +307,70 @@ export default function FamilyEnrollmentWizard({
             </div>
 
             {/* Mobile with Country Dial Code Selector */}
-            <div>
+            <div className="min-w-0">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
                 Mobile Number with Country Dial Code *
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={dialCode}
-                  onChange={(e) => {
-                    setDialCode(e.target.value);
-                    if (e.target.value === 'CUSTOM') {
-                      setCustomDialCode('+');
-                    }
-                  }}
-                  className="p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none"
-                >
-                  {majorCountries.map((c) => (
-                    <option key={c.code} value={c.dialCode}>
-                      {c.flag} {c.dialCode} ({c.code})
-                    </option>
-                  ))}
-                  <option value="CUSTOM">🌐 Other / Custom Code</option>
-                </select>
-
-                {dialCode === 'CUSTOM' && (
+              {dialCode !== 'CUSTOM' ? (
+                <div className="flex gap-2 min-w-0">
+                  <select
+                    value={dialCode}
+                    onChange={(e) => {
+                      setDialCode(e.target.value);
+                      if (e.target.value === 'CUSTOM') {
+                        setCustomDialCode('+');
+                      }
+                    }}
+                    className="w-32 sm:w-36 shrink-0 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none truncate"
+                  >
+                    {majorCountries.map((c) => (
+                      <option key={c.code} value={c.dialCode}>
+                        {c.flag} {c.dialCode} ({c.code})
+                      </option>
+                    ))}
+                    <option value="CUSTOM">🌐 Other Code</option>
+                  </select>
                   <input
-                    type="text"
+                    type="tel"
                     required
-                    value={customDialCode}
-                    onChange={(e) => setCustomDialCode(e.target.value)}
-                    placeholder="+254"
-                    className="w-24 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none focus:border-[#8B5E3C]"
+                    value={rawPhone}
+                    onChange={(e) => setRawPhone(e.target.value)}
+                    placeholder="Mobile number"
+                    className="flex-1 min-w-0 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
                   />
-                )}
-
-                <input
-                  type="tel"
-                  required
-                  value={rawPhone}
-                  onChange={(e) => setRawPhone(e.target.value)}
-                  placeholder="Mobile number"
-                  className="flex-1 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
-                />
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#8B5E3C]">Custom Dial Code Mode</span>
+                    <button
+                      type="button"
+                      onClick={() => setDialCode(majorCountries[0].dialCode)}
+                      className="text-[10px] text-[#8B5E3C] hover:underline font-semibold cursor-pointer"
+                    >
+                      ← Use Country Presets
+                    </button>
+                  </div>
+                  <div className="flex gap-2 min-w-0">
+                    <input
+                      type="text"
+                      required
+                      value={customDialCode}
+                      onChange={(e) => setCustomDialCode(e.target.value)}
+                      placeholder="+254"
+                      className="w-20 shrink-0 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none focus:border-[#8B5E3C]"
+                    />
+                    <input
+                      type="tel"
+                      required
+                      value={rawPhone}
+                      onChange={(e) => setRawPhone(e.target.value)}
+                      placeholder="Mobile number"
+                      className="flex-1 min-w-0 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
