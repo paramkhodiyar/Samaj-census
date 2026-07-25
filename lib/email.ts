@@ -181,12 +181,12 @@ export async function sendEmail({ to, subject, html }: SendMailParams): Promise<
 export async function sendLoginOtpEmail(email: string, code: string): Promise<boolean> {
   const html = buildEmailTemplate({
     title: 'Your Sign-In Verification Code',
-    previewText: `Your verification code is ${code}. Valid for 10 minutes.`,
+    previewText: `Your verification code is ${code}. Valid for 5 minutes.`,
     headingLabel: 'Sign-In Verification',
     bodyParagraph:
       'Use the verification code below to complete your sign-in to the <strong>KGK Samaj Census Portal</strong>.',
     otp: code,
-    expiryNote: 'Code expires in 10 minutes. Valid for one-time use.',
+    expiryNote: 'Code expires in 5 minutes. Valid for one-time use.',
   });
 
   return sendEmail({
@@ -202,12 +202,12 @@ export async function sendLoginOtpEmail(email: string, code: string): Promise<bo
 export async function sendResetOtpEmail(email: string, code: string): Promise<boolean> {
   const html = buildEmailTemplate({
     title: 'Reset Your Password',
-    previewText: `Your verification code is ${code}. Valid for 10 minutes.`,
+    previewText: `Your verification code is ${code}. Valid for 5 minutes.`,
     headingLabel: 'Password Reset Request',
     bodyParagraph:
       'We received a request to reset your password for the <strong>KGK Samaj Census Portal</strong>.',
     otp: code,
-    expiryNote: 'Code expires in 10 minutes.',
+    expiryNote: 'Code expires in 5 minutes.',
     warningNote:
       'If you did not request a password reset, please ignore this message. Your account remains secure.',
   });

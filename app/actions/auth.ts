@@ -85,7 +85,7 @@ async function sendWhatsAppOTP(mobileNumber: string, code: string): Promise<bool
         body: new URLSearchParams({
           To: `whatsapp:+${cleanPhone}`,
           From: twilioFrom,
-          Body: `Your Shri Kutch Gurjar Kshatriya Samaj Census Portal OTP is: ${code}\n\nValid for 10 minutes. Please do not share this code.`,
+          Body: `Your Shri Kutch Gurjar Kshatriya Samaj Census Portal OTP is: ${code}\n\nValid for 5 minutes. Please do not share this code.`,
         }),
       });
 
@@ -185,7 +185,7 @@ async function generateAndSaveOTP(mobileNumber: string) {
   // Generate a random 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedCode = hashOTP(code);
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
   // Store in database as SHA-256 hash
   await prisma.verificationCode.create({
