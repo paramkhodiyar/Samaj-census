@@ -180,7 +180,26 @@ export default function DashboardShell({ session, children }: DashboardShellProp
                 </svg>
                 <div className="h-4 overflow-hidden relative min-w-[140px] md:min-w-[170px]">
                   <div className={`absolute transform ${animClass}`}>
-                    {GREETING_LISTS[language as keyof typeof GREETING_LISTS]?.[greetingIndex] || GREETING_LISTS.en[greetingIndex]}, {session.userName || 'Member'}
+                    {(() => {
+                      const rawName = session.userName || 'Member';
+                      const firstName = rawName.split(' ')[0];
+                      const isIdentifier = firstName.includes('@') || /^[+\d]+$/.test(firstName);
+                      const greetingWord = GREETING_LISTS[language as keyof typeof GREETING_LISTS]?.[greetingIndex] || GREETING_LISTS.en[greetingIndex];
+                      
+                      if (isIdentifier) {
+                        return `${greetingWord}, Member`;
+                      }
+                      if (session.familyId) {
+                        if (language === 'hi') {
+                          return `${greetingWord} ${firstName} का परिवार`;
+                        }
+                        if (language === 'gu') {
+                          return `${greetingWord} ${firstName} નો પરિવાર`;
+                        }
+                        return `${greetingWord} ${firstName}'s Family`;
+                      }
+                      return `${greetingWord}, ${firstName}`;
+                    })()}
                   </div>
                 </div>
               </div>

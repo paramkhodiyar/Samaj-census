@@ -68,8 +68,8 @@ function RegisterPageContent() {
   }, [activateState, router]);
 
   const handleSendOtp = async () => {
-    if (!activateMobile || activateMobile.length < 10) {
-      toast.error('Please enter a valid mobile number');
+    if (!activateMobile || activateMobile.trim().length < 4) {
+      toast.error('Please enter a valid mobile number or email address');
       return;
     }
     setIsSendingOtp(true);
@@ -79,7 +79,11 @@ function RegisterPageContent() {
         toast.error(result.error);
       } else {
         setIsOtpSent(true);
-        toast.success('Verification OTP code sent to your WhatsApp!');
+        if (result?.isApprovedJoin) {
+          toast.success('Your enrollment request has been approved! Verification OTP code sent.');
+        } else {
+          toast.success('Verification OTP code sent successfully!');
+        }
       }
     } catch (err) {
       toast.error('Failed to send OTP. Please try again.');
@@ -207,7 +211,7 @@ function RegisterPageContent() {
             <form action={activateFormAction} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
-                  Registered Mobile Number <span className="text-red-500">*</span>
+                  Registered Mobile Number or Email Address <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -215,10 +219,10 @@ function RegisterPageContent() {
                       <Phone className="w-4 h-4" />
                     </span>
                     <input
-                      type="tel"
+                      type="text"
                       name="mobileNumber"
                       required
-                      placeholder="e.g. 9876543210"
+                      placeholder="e.g. 9876543210 or head@email.com"
                       value={activateMobile}
                       onChange={(e) => setActivateMobile(e.target.value)}
                       disabled={isOtpSent}

@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getAuthSession } from '@/lib/auth';
+import { sendJoinRequestApprovalEmail } from '@/lib/email';
 
 // Action: Submit a Join/Enrollment Request
 export async function submitJoinRequestAction(data: {
@@ -182,6 +183,13 @@ export async function approveJoinRequestAction(requestId: string) {
         userId: verifierId,
       },
     });
+
+    // Send approval confirmation email to the user
+    try {
+      await sendJoinRequestApprovalEmail(request.email, request.fullName);
+    } catch (emailErr) {
+      console.error('Failed to send join request approval email:', emailErr);
+    }
 
     revalidatePath('/dashboard/join-requests');
     revalidatePath('/dashboard');

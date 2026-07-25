@@ -218,3 +218,64 @@ export async function sendResetOtpEmail(email: string, code: string): Promise<bo
     html,
   });
 }
+
+/**
+ * Sends a notification email when a join/enrollment request is approved by an admin
+ */
+export async function sendJoinRequestApprovalEmail(email: string, fullName: string): Promise<boolean> {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Enrollment Request Approved</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: sans-serif; color: #1E293B;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8FAFC; padding: 48px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="520" style="max-width: 520px; width: 100%; background: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);">
+        <tr><td style="height: 4px; background: #8B5E3C;"></td></tr>
+        <tr>
+          <td style="padding: 32px 36px 24px; border-bottom: 1px solid #F1F5F9;">
+            <div style="font-size: 16px; font-weight: 700; color: #0F172A;">Shri Kutch Gurjar Kshatriya Samaj</div>
+            <div style="font-size: 12px; color: #64748B; margin-top: 2px;">Community Census Portal</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 36px;">
+            <h1 style="font-size: 20px; font-weight: 600; color: #0F172A; margin: 0 0 12px 0;">Enrollment Approved!</h1>
+            <p style="font-size: 14px; line-height: 1.6; color: #334155; margin: 0 0 24px 0;">
+              Namaste <strong>${fullName}</strong>,<br/><br/>
+              We are pleased to inform you that your enrollment request has been approved by the Administrator.
+              Your family account is now active in the census database.
+            </p>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 20px; margin-bottom: 24px; font-size: 13px; color: #334155; line-height: 1.5;">
+              <strong>How to Access Your Account:</strong><br/>
+              1. Visit the portal and go to the Sign In page.<br/>
+              2. Enter your registered email address (<strong>${email}</strong>) or your mobile number.<br/>
+              3. Verify using the one-time password (OTP) sent to you.<br/>
+              4. Complete your family details!
+            </div>
+            <p style="font-size: 13px; color: #64748B; line-height: 1.5; margin: 0;">
+              If you have any questions or require assistance, please feel free to reach out to the Samaj Census support team.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 24px 36px; background: #FAF7F2; border-top: 1px solid #F1F5F9; text-align: center;">
+            <p style="font-size: 11px; color: #94A3B8; margin: 0;">
+              &copy; ${new Date().getFullYear()} Shri Kutch Gurjar Kshatriya Samaj
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return sendEmail({
+    to: email,
+    subject: `Approved: KGK Samaj Census Enrollment Request`,
+    html,
+  });
+}

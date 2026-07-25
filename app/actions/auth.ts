@@ -314,6 +314,29 @@ export async function sendOtpAction(mobileNumber: string) {
         }));
 
       if (!isHead) {
+        // Check if there is an active join request
+        const joinRequest = await prisma.joinRequest.findFirst({
+          where: {
+            OR: [
+              { mobileNumber: cleanInput },
+              { email: cleanEmail },
+            ],
+          },
+        });
+
+        if (joinRequest) {
+          if (joinRequest.status === 'PENDING') {
+            return {
+              error: 'Your enrollment request is pending review. You will receive an email notification once approved.',
+            };
+          }
+          if (joinRequest.status === 'REJECTED') {
+            return {
+              error: 'Your enrollment request has been rejected. Please contact the administrator for details.',
+            };
+          }
+        }
+
         const isMember = await prisma.member.findFirst({
           where: {
             OR: [{ mobile: cleanInput }, { email: cleanEmail }],
@@ -348,9 +371,21 @@ export async function sendOtpAction(mobileNumber: string) {
       }
     }
 
+    // Check if there was an approved join request for this mobileNumber/email
+    const joinReq = await prisma.joinRequest.findFirst({
+      where: {
+        OR: [
+          { mobileNumber: cleanInput },
+          { email: cleanEmail },
+        ],
+        status: 'APPROVED',
+      },
+    });
+    const isApprovedJoin = joinReq !== null;
+
     // Generate and save OTP
     await generateAndSaveOTP(mobileNumber);
-    return { success: true };
+    return { success: true, isApprovedJoin };
   } catch (error: any) {
     console.error('Send OTP Error:', error);
     if (error.message === 'DELIVERY_FAILED') {
