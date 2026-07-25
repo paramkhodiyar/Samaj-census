@@ -16,10 +16,10 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  mobileNumber: z.string().min(10, 'Mobile number is required'),
+  mobileNumber: z.string().min(3, 'Mobile number or email is required'),
   otp: z.string().min(6, 'OTP must be 6 digits'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Password confirmation is required'),
+  password: z.string().optional(),
+  confirmPassword: z.string().optional(),
 });
 
 // Helper: Get Client IP Address securely from headers
@@ -612,8 +612,10 @@ export async function registerAction(prevState: any, formData: FormData) {
     return { error: result.error.issues[0].message };
   }
 
-  if (password !== confirmPassword) {
-    return { error: 'Passwords do not match' };
+  if (password || confirmPassword) {
+    if (password !== confirmPassword) {
+      return { error: 'Passwords do not match' };
+    }
   }
 
   try {
@@ -678,8 +680,8 @@ export async function registerAction(prevState: any, formData: FormData) {
       return { error: 'You must provide consent under DPDP Act 2023 to proceed.' };
     }
 
-    // Hash Password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash Password if provided
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : '';
 
     // 3. Create or Update User
     const user = await prisma.user.upsert({

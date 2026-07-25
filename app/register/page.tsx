@@ -242,7 +242,7 @@ function RegisterPageContent() {
                 <>
                   <div className="p-3 bg-emerald-50 text-emerald-800 text-[11px] rounded border border-emerald-100 flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>OTP sent to your WhatsApp. Enter details below to set password.</span>
+                    <span>OTP sent! Enter verification code below to activate your account.</span>
                   </div>
 
                   <div>
@@ -258,42 +258,6 @@ function RegisterPageContent() {
                         name="otp"
                         required
                         placeholder="6-digit code"
-                        className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
-                      Set Password <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
-                        <Lock className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="password"
-                        name="password"
-                        required
-                        placeholder="Minimum 6 characters"
-                        className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
-                      Confirm Password <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
-                        <Lock className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        required
-                        placeholder="Re-enter password"
                         className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
                       />
                     </div>
