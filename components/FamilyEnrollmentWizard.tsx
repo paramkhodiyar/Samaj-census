@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createFamilyForUserAction } from '@/app/actions/family';
+import CountrySelect, { majorCountries } from './CountrySelect';
+import CustomDropdown from './CustomDropdown';
 import { toast } from 'sonner';
 import {
   Home,
@@ -14,13 +16,10 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
+  Globe,
   MapPin,
   Phone,
   Mail,
-  Calendar,
-  Briefcase,
-  GraduationCap,
-  Heart,
   Loader2,
   Users
 } from 'lucide-react';
@@ -43,12 +42,20 @@ export default function FamilyEnrollmentWizard({
 
   // Step 1: Head & Location State
   const [headName, setHeadName] = useState('');
+  const [country, setCountry] = useState('India');
+  const [customCountry, setCustomCountry] = useState('');
+  const [city, setCity] = useState('');
   const [nativeVillage, setNativeVillage] = useState('');
   const [address, setAddress] = useState('');
-  const [mobile, setMobile] = useState(userMobile || '');
+  
+  // Phone & Dial Code
+  const [dialCode, setDialCode] = useState('+91');
+  const [rawPhone, setRawPhone] = useState(userMobile?.replace(/^\+?91/, '') || '');
   const [email, setEmail] = useState(userEmail || '');
-  const [selectedGhatakId, setSelectedGhatakId] = useState(ghataks[0]?.id || '');
-  const [selectedPradeshikId, setSelectedPradeshikId] = useState(pradeshiks[0]?.id || '');
+  
+  // Optional Ghatak & Pradeshik
+  const [selectedGhatakId, setSelectedGhatakId] = useState('');
+  const [selectedPradeshikId, setSelectedPradeshikId] = useState('');
 
   // Step 2: Members State
   const [members, setMembers] = useState<Array<{
@@ -77,6 +84,9 @@ export default function FamilyEnrollmentWizard({
   const [consentGiven, setConsentGiven] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const effectiveCountry = country === 'Other' ? customCountry.trim() : country;
+  const fullMobile = `${dialCode} ${rawPhone.trim()}`.trim();
+
   const handleAddMember = () => {
     if (!newMember.name.trim()) {
       toast.error('Please enter the family member full name.');
@@ -103,8 +113,8 @@ export default function FamilyEnrollmentWizard({
   };
 
   const handleNextToStep2 = () => {
-    if (!headName.trim() || !nativeVillage.trim() || !address.trim() || !mobile.trim()) {
-      toast.error('Please complete all required fields in Step 1.');
+    if (!headName.trim() || !effectiveCountry || !city.trim() || !nativeVillage.trim() || !address.trim() || !rawPhone.trim()) {
+      toast.error('Please complete all required fields (Head Name, Country, City, Native Village, Mobile, Address) in Step 1.');
       return;
     }
     setCurrentStep(2);
@@ -123,9 +133,11 @@ export default function FamilyEnrollmentWizard({
     setIsSubmitting(true);
     const res = await createFamilyForUserAction({
       headName,
+      country: effectiveCountry,
+      city,
       nativeVillage,
       address,
-      mobile,
+      mobile: fullMobile,
       email: email || undefined,
       ghatakId: selectedGhatakId || undefined,
       pradeshikId: selectedPradeshikId || undefined,
@@ -149,13 +161,13 @@ export default function FamilyEnrollmentWizard({
         <div>
           <div className="flex items-center gap-2 text-[#8B5E3C] mb-1.5">
             <Sparkles className="w-5 h-5 text-[#8B5E3C]" />
-            <span className="text-xs font-bold uppercase tracking-wider">Official Samaj Census Enrollment</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Official Global Samaj Census Enrollment</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#2D2D2D]">
             Enroll Your Family Census Profile
           </h1>
           <p className="text-xs md:text-sm text-[#6A5B4D] mt-1">
-            Complete this 3-step registration to create your family profile in the Shri K.G.K. Samaj directory.
+            Complete this 3-step registration to create your family census profile (domestic or NRI).
           </p>
         </div>
       </div>
@@ -176,7 +188,7 @@ export default function FamilyEnrollmentWizard({
             </div>
             <div className="hidden sm:block">
               <p className="text-xs font-bold text-[#2D2D2D]">Step 1</p>
-              <p className="text-[11px] text-[#6A5B4D]">Head & Location</p>
+              <p className="text-[11px] text-[#6A5B4D]">Location & Heritage</p>
             </div>
           </div>
 
@@ -218,16 +230,16 @@ export default function FamilyEnrollmentWizard({
         </div>
       </div>
 
-      {/* STEP 1 CONTENT: Head & Location Info */}
+      {/* STEP 1 CONTENT: Head & NRI Location Info */}
       {currentStep === 1 && (
         <div className="bg-white p-6 md:p-8 rounded-2xl border border-[#E5DDD0] shadow-sm space-y-6">
           <div className="border-b border-[#E5DDD0] pb-4">
             <h2 className="text-lg font-bold text-[#8B5E3C] flex items-center gap-2">
               <Home className="w-5 h-5 text-[#8B5E3C]" />
-              Step 1: Family Head & Kutch Heritage Details
+              Step 1: Family Head & Global Location
             </h2>
             <p className="text-xs text-[#6A5B4D] mt-1">
-              Enter primary census information for the Family Head and native Kutch village origin.
+              Specify your residence country, city, mobile with country code, and native Kutch village.
             </p>
           </div>
 
@@ -246,6 +258,38 @@ export default function FamilyEnrollmentWizard({
               />
             </div>
 
+            {/* Country Selector with Flags & Other option */}
+            <div>
+              <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
+                Country of Residence *
+              </label>
+              <CountrySelect
+                value={country}
+                customCountry={customCountry}
+                onChange={(c, custom) => {
+                  setCountry(c);
+                  if (custom !== undefined) setCustomCountry(custom);
+                  // Auto set dial code if matched in list
+                  const matched = majorCountries.find(m => m.name === c);
+                  if (matched) setDialCode(matched.dialCode);
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
+                Current Residence City *
+              </label>
+              <input
+                type="text"
+                required
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g. Nairobi, London, Chicago, Ahmedabad"
+                className="w-full p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+              />
+            </div>
+
             <div>
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
                 Native Village in Kutch *
@@ -260,18 +304,36 @@ export default function FamilyEnrollmentWizard({
               />
             </div>
 
+            {/* Mobile with Country Dial Code Selector */}
             <div>
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
-                Primary Contact Mobile Number *
+                Mobile Number with Country Code *
               </label>
-              <input
-                type="tel"
-                required
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                placeholder="10-digit mobile number"
-                className="w-full p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
-              />
+              <div className="flex gap-2">
+                <select
+                  value={dialCode}
+                  onChange={(e) => setDialCode(e.target.value)}
+                  className="p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C]"
+                >
+                  {majorCountries.map((c) => (
+                    <option key={c.code} value={c.dialCode}>
+                      {c.flag} {c.dialCode} ({c.code})
+                    </option>
+                  ))}
+                  <option value="+1">+1 (US/CA)</option>
+                  <option value="+44">+44 (UK)</option>
+                  <option value="+254">+254 (KE)</option>
+                  <option value="+971">+971 (UAE)</option>
+                </select>
+                <input
+                  type="tel"
+                  required
+                  value={rawPhone}
+                  onChange={(e) => setRawPhone(e.target.value)}
+                  placeholder="Mobile number"
+                  className="flex-1 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+                />
+              </div>
             </div>
 
             <div>
@@ -289,52 +351,63 @@ export default function FamilyEnrollmentWizard({
 
             <div className="md:col-span-2">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
-                Current Residential Address *
+                Current Street Address *
               </label>
               <textarea
                 rows={2}
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Complete street address, city, state, pincode"
+                placeholder="Complete street address, city, state, postal code"
                 className="w-full p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
               />
             </div>
 
-            {/* Ghatak / Pradeshik Selection */}
-            {ghataks.length > 0 && (
-              <div>
-                <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
-                  Local Ghatak Community Cluster
-                </label>
-                <select
-                  value={selectedGhatakId}
-                  onChange={(e) => setSelectedGhatakId(e.target.value)}
-                  className="w-full p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C]"
-                >
-                  {ghataks.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name} Ghatak ({g.code})</option>
-                  ))}
-                </select>
+            {/* Optional Ghatak & Pradeshik Section */}
+            <div className="md:col-span-2 p-4 bg-[#FAF7F2]/50 rounded-xl border border-[#E5DDD0] space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#8B5E3C] uppercase text-[10px] tracking-wider">
+                  Domestic Ghatak & Province (Optional for NRIs)
+                </span>
+                <span className="text-[10px] text-[#6A5B4D] italic">
+                  Leave blank if living abroad outside domestic Ghatak jurisdictions
+                </span>
               </div>
-            )}
 
-            {pradeshiks.length > 0 && (
-              <div>
-                <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
-                  Pradeshik Province Zone
-                </label>
-                <select
-                  value={selectedPradeshikId}
-                  onChange={(e) => setSelectedPradeshikId(e.target.value)}
-                  className="w-full p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C]"
-                >
-                  {pradeshiks.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} Zone ({p.code})</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
+                    Ghatak Community Cluster (Optional)
+                  </label>
+                  <select
+                    value={selectedGhatakId}
+                    onChange={(e) => setSelectedGhatakId(e.target.value)}
+                    className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs text-[#2D2D2D]"
+                  >
+                    <option value="">-- None / NRI International --</option>
+                    {ghataks.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name} Ghatak ({g.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
+                    Pradeshik Province Zone (Optional)
+                  </label>
+                  <select
+                    value={selectedPradeshikId}
+                    onChange={(e) => setSelectedPradeshikId(e.target.value)}
+                    className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs text-[#2D2D2D]"
+                  >
+                    <option value="">-- None / NRI International --</option>
+                    {pradeshiks.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} Zone ({p.code})</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="pt-6 border-t border-[#E5DDD0] flex justify-end">
@@ -360,7 +433,7 @@ export default function FamilyEnrollmentWizard({
                 Step 2: Add Family Members ({members.length + 1} Total)
               </h2>
               <p className="text-xs text-[#6A5B4D] mt-1">
-                Family Head ({headName}) is included automatically as Head. Add additional relatives below.
+                Family Head ({headName}) is included automatically. Add additional relatives below.
               </p>
             </div>
           </div>
@@ -383,7 +456,7 @@ export default function FamilyEnrollmentWizard({
                     </span>
                   </div>
                   <p className="text-xs text-[#6A5B4D] mt-0.5">
-                    {mobile} &bull; Native: {nativeVillage}
+                    {fullMobile} &bull; {city}, {effectiveCountry} &bull; Native: {nativeVillage}
                   </p>
                 </div>
               </div>
@@ -565,7 +638,7 @@ export default function FamilyEnrollmentWizard({
           <div className="border-b border-[#E5DDD0] pb-4">
             <h2 className="text-lg font-bold text-[#8B5E3C] flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-[#8B5E3C]" />
-              Step 3: Review Census Summary & Acknowledge Consent
+              Step 3: Review Global Census Summary & Acknowledge Consent
             </h2>
             <p className="text-xs text-[#6A5B4D] mt-1">
               Verify your family details before saving your official census profile.
@@ -581,12 +654,16 @@ export default function FamilyEnrollmentWizard({
                 <span className="font-semibold text-[#2D2D2D] text-sm">{headName}</span>
               </div>
               <div>
+                <span className="text-[#6A5B4D] block uppercase text-[10px] font-bold">Country & City</span>
+                <span className="font-semibold text-[#8B5E3C] text-sm">{city}, {effectiveCountry}</span>
+              </div>
+              <div>
                 <span className="text-[#6A5B4D] block uppercase text-[10px] font-bold">Native Village in Kutch</span>
                 <span className="font-semibold text-[#8B5E3C] text-sm">{nativeVillage}</span>
               </div>
               <div>
-                <span className="text-[#6A5B4D] block uppercase text-[10px] font-bold">Primary Phone</span>
-                <span className="font-semibold text-[#2D2D2D] text-sm">{mobile}</span>
+                <span className="text-[#6A5B4D] block uppercase text-[10px] font-bold">Primary Mobile</span>
+                <span className="font-semibold text-[#2D2D2D] text-sm">{fullMobile}</span>
               </div>
               <div className="sm:col-span-2">
                 <span className="text-[#6A5B4D] block uppercase text-[10px] font-bold">Residential Address</span>
@@ -607,7 +684,7 @@ export default function FamilyEnrollmentWizard({
               <div className="p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs">
                 <span className="font-bold text-[#2D2D2D]">{headName}</span>{' '}
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#8B5E3C] text-white">Head</span>
-                <p className="text-[11px] text-[#6A5B4D] mt-1">{mobile}</p>
+                <p className="text-[11px] text-[#6A5B4D] mt-1">{fullMobile}</p>
               </div>
               {/* Additional Members */}
               {members.map((m, idx) => (

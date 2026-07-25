@@ -74,6 +74,8 @@ export default function CreateFamilyModal({ userEmail, onClose }: CreateFamilyMo
     setIsSubmitting(true);
     const res = await createFamilyForUserAction({
       headName,
+      country: 'India',
+      city: 'Ahmedabad',
       nativeVillage,
       address,
       mobile,

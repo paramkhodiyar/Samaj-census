@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 
 export async function createFamilyForUserAction(data: {
   headName: string;
+  country: string;
+  city: string;
+  indiaHometown?: string;
   nativeVillage: string;
   address: string;
   mobile: string;
@@ -41,23 +44,33 @@ export async function createFamilyForUserAction(data: {
       return { error: 'Your account is already linked to a family census record.' };
     }
 
-    // Generate unique Family ID
-    const count = await prisma.family.count();
-    const generatedFamilyCode = `KG-2026-${String(count + 101).padStart(5, '0')}`;
+    const country = data.country.trim();
+    const isNri = country !== 'India' && country !== '';
 
-    // Get default Pradeshik & Ghatak if not specified
-    let ghatakId = data.ghatakId;
-    let pradeshikId = data.pradeshikId;
+    // Generate Family ID (KG-NRI-xxxxx for NRI, KG-2026-xxxxx for domestic)
+    let generatedFamilyCode: string;
 
-    if (!ghatakId || !pradeshikId) {
-      const defaultGhatak = await prisma.ghatak.findFirst({
-        include: { pradeshik: true },
+    if (isNri) {
+      const lastNriFamily = await prisma.family.findFirst({
+        where: { familyId: { startsWith: 'KG-NRI-' } },
+        orderBy: { familyId: 'desc' },
       });
-      if (defaultGhatak) {
-        ghatakId = defaultGhatak.id;
-        pradeshikId = defaultGhatak.pradeshikId;
+      let nextIndex = 1;
+      if (lastNriFamily) {
+        const match = lastNriFamily.familyId.match(/KG-NRI-(\d+)/);
+        if (match) {
+          nextIndex = parseInt(match[1], 10) + 1;
+        }
       }
+      generatedFamilyCode = `KG-NRI-${String(nextIndex).padStart(5, '0')}`;
+    } else {
+      const count = await prisma.family.count();
+      generatedFamilyCode = `KG-2026-${String(count + 101).padStart(5, '0')}`;
     }
+
+    // Optional Ghatak & Pradeshik
+    const ghatakId = data.ghatakId || null;
+    const pradeshikId = data.pradeshikId || null;
 
     // Create Family & Member records in transaction
     const family = await prisma.$transaction(async (tx) => {
@@ -65,11 +78,15 @@ export async function createFamilyForUserAction(data: {
         data: {
           familyId: generatedFamilyCode,
           headName: data.headName.trim(),
+          country: country || 'India',
+          city: data.city.trim(),
+          indiaHometown: data.indiaHometown?.trim() || null,
+          kutchVillage: data.nativeVillage.trim(),
           nativeVillage: data.nativeVillage.trim(),
           address: data.address.trim(),
           mobile: data.mobile.trim(),
-          ghatakId: ghatakId || null,
-          pradeshikId: pradeshikId || null,
+          ghatakId,
+          pradeshikId,
           members: {
             create: [
               // Create Head member
@@ -113,7 +130,7 @@ export async function createFamilyForUserAction(data: {
     await prisma.auditLog.create({
       data: {
         action: 'CREATE_FAMILY',
-        description: `Family Head ${data.headName} created family profile ${family.familyId}`,
+        description: `Family Head ${data.headName} created family profile ${family.familyId} (${country})`,
         userId: session.userId,
       },
     });
