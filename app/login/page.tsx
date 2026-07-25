@@ -237,46 +237,36 @@ export default function LoginPage() {
                 <h4 className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider mb-3 text-center">
                   Quick Login (Dev Mode)
                 </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-3 gap-2 text-xs">
                   <button
                     type="button"
                     onClick={() => {
-                      setMobileNumber('9999999999');
+                      setMobileNumber('param.khodiyar2024@nst.rishihood.edu.in');
                       setOtpSent(false);
                     }}
-                    className="py-2 px-3 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer"
+                    className="py-2.5 px-2 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer text-center text-[11px] truncate shadow-xs transition-colors"
                   >
                     Super Admin
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      setMobileNumber('8888888888');
+                      setMobileNumber('whatsappbackupparam@gmail.com');
                       setOtpSent(false);
                     }}
-                    className="py-2 px-3 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer"
+                    className="py-2.5 px-2 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer text-center text-[11px] truncate shadow-xs transition-colors"
                   >
-                    Pradeshik Admin
+                    NRI Admin
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      setMobileNumber('7777777777');
+                      setMobileNumber('paramkhodiyar1008@gmail.com');
                       setOtpSent(false);
                     }}
-                    className="py-2 px-3 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer"
+                    className="py-2.5 px-2 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer text-center text-[11px] truncate shadow-xs transition-colors"
                   >
-                    Ghatak Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileNumber('9876543210');
-                      setOtpSent(false);
-                    }}
-                    className="py-2 px-3 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer"
-                  >
-                    Family Head
+                    Family User
                   </button>
                 </div>
               </div>
