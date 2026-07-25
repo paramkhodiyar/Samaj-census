@@ -24,15 +24,39 @@ interface DashboardShellProps {
     userId: string;
     role: string;
     mobileNumber: string;
+    userName?: string;
+    familyId?: string | null;
   };
   children: React.ReactNode;
 }
+
+const GREETING_LISTS = {
+  en: ['Jay Shree Krishna', 'Jay Swaminarayan', 'Ram Ram', 'Namaste', 'Pranam', 'Jai Jinendra', 'Welcome'],
+  hi: ['जय श्री कृष्णा', 'जय स्वामीनारायण', 'राम राम', 'नमस्ते', 'प्रणाम', 'जय जिनेन्द्र', 'स्वागत है'],
+  gu: ['જય શ્રી કૃષ્ણ', 'જય સ્વામિનારાયણ', 'રામ રામ', 'નમસ્તે', 'પ્રણામ', 'જય જિનેન્દ્ર', 'સ્વાગત છે'],
+};
 
 export default function DashboardShell({ session, children }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { language, setLanguage, t } = useTranslation();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Rotating greeting state
+  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [isFading, setIsFading] = useState(false);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setIsFading(true);
+      setTimeout(() => {
+        setGreetingIndex((prev) => (prev + 1) % GREETING_LISTS.en.length);
+        setIsFading(false);
+      }, 250);
+    }, 3800);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const toastShownRef = React.useRef(false);
 
@@ -139,12 +163,14 @@ export default function DashboardShell({ session, children }: DashboardShellProp
           </div>
 
           <div className="flex items-center gap-3">
-            {/* User Meta Card (Hidden on small screens) */}
-            <div className="hidden sm:flex flex-col items-end text-right">
-              <span className="text-xs font-semibold text-[#2D2D2D]">{session.mobileNumber}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${getRoleBadgeColor(session.role)}`}>
-                {session.role.replace('_', ' ')}
-              </span>
+            {/* Animated Dynamic Indian Greeting Card */}
+            <div className="hidden sm:flex items-center">
+              <div className="bg-[#FAF7F2] px-3.5 py-1.5 rounded-full border border-[#E5DDD0] text-xs font-serif font-bold text-[#8B5E3C] flex items-center gap-2 overflow-hidden shadow-2xs">
+                <span className="text-sm shrink-0">🙏</span>
+                <div className={`transition-all duration-300 transform ${isFading ? 'opacity-0 -translate-y-1 scale-95' : 'opacity-100 translate-y-0 scale-100'}`}>
+                  {GREETING_LISTS[language as keyof typeof GREETING_LISTS]?.[greetingIndex] || GREETING_LISTS.en[greetingIndex]}, {session.userName || 'Member'}
+                </div>
+              </div>
             </div>
 
             {/* Language Switch */}
@@ -206,9 +232,17 @@ export default function DashboardShell({ session, children }: DashboardShellProp
             </nav>
           </div>
 
-          <div className="border-t border-[#FAF7F2] pt-4 text-[10px] text-center text-[#6A5B4D] tracking-wider leading-relaxed">
-            <p className="font-semibold text-[#8B5E3C]">Shri K.G.K. Samaj</p>
-            <p>Community Census Portal</p>
+          <div className="border-t border-[#E5DDD0]/60 pt-3 space-y-2">
+            <div className="flex items-center justify-between text-xs px-1 bg-[#FAF7F2] p-2 rounded-lg border border-[#E5DDD0]/50">
+              <span className="text-[10px] font-bold text-[#6A5B4D] uppercase tracking-wider">{t('role')}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${getRoleBadgeColor(session.role)}`}>
+                {session.role.replace('_', ' ')}
+              </span>
+            </div>
+            <div className="text-[10px] text-center text-[#6A5B4D] tracking-wider leading-relaxed pt-1">
+              <p className="font-semibold text-[#8B5E3C]">Shri K.G.K. Samaj</p>
+              <p>Community Census Portal</p>
+            </div>
           </div>
         </aside>
 

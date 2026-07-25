@@ -122,10 +122,13 @@ export async function createFamilyForUserAction(data: {
         },
       });
 
-      // Link User to Family
+      // Link User to Family and update primary mobileNumber
       await tx.user.update({
         where: { id: user.id },
-        data: { familyId: createdFamily.id },
+        data: {
+          familyId: createdFamily.id,
+          mobileNumber: data.mobile.trim(),
+        },
       });
 
       return createdFamily;

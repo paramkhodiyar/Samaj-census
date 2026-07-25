@@ -143,6 +143,13 @@ const translations = {
     female: 'Female',
     other: 'Other',
 
+    // Indian Greetings & Extra Profile Keys
+    greetingPranam: 'Pranam',
+    greetingJaiJinendra: 'Jai Jinendra',
+    accountInfo: 'Account Information',
+    auditLogsTitle: 'My Activity Audit Logs',
+    primaryMobile: 'Primary Mobile',
+
     // Profile Screen
     accountSettings: 'Account Settings',
     changePassword: 'Change Password',
@@ -294,6 +301,13 @@ const translations = {
     female: 'महिला',
     other: 'अन्य',
 
+    // Indian Greetings & Extra Profile Keys
+    greetingPranam: 'प्रणाम',
+    greetingJaiJinendra: 'जय जिनेन्द्र',
+    accountInfo: 'खाता जानकारी',
+    auditLogsTitle: 'मेरी गतिविधि ऑडिट लॉग',
+    primaryMobile: 'प्राथमिक मोबाइल',
+
     // Profile Screen
     accountSettings: 'खाता सेटिंग्स',
     changePassword: 'पासवर्ड बदलें',
@@ -444,6 +458,13 @@ const translations = {
     male: 'પુરુષ',
     female: 'સ્ત્રી',
     other: 'અન્ય',
+
+    // Indian Greetings & Extra Profile Keys
+    greetingPranam: 'પ્રણામ',
+    greetingJaiJinendra: 'જય જિનેન્દ્ર',
+    accountInfo: 'એકાઉન્ટ માહિતી',
+    auditLogsTitle: 'મારી પ્રવૃત્તિ ઓડિટ લોગ',
+    primaryMobile: 'પ્રાથમિક મોબાઇલ',
 
     // Profile Screen
     accountSettings: 'એકાઉન્ટ સેટિંગ્સ',

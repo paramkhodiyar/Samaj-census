@@ -94,12 +94,19 @@ export default function FamilyEnrollmentWizard({
   const effectiveDialCode = dialCode === 'CUSTOM' ? customDialCode.trim() : dialCode;
   const fullMobile = `${effectiveDialCode} ${rawPhone.trim()}`.trim();
 
+  // Member phone dial code defaults to Head's dial code
+  const [memberDialCode, setMemberDialCode] = useState('');
+  const [memberRawMobile, setMemberRawMobile] = useState('');
+
   const handleAddMember = () => {
     if (!newMember.name.trim()) {
       toast.error('Please enter the family member full name.');
       return;
     }
-    setMembers([...members, { ...newMember }]);
+    const activeDialCode = memberDialCode || effectiveDialCode;
+    const fullMemberMobile = memberRawMobile.trim() ? `${activeDialCode} ${memberRawMobile.trim()}`.trim() : '';
+
+    setMembers([...members, { ...newMember, mobile: fullMemberMobile }]);
     setNewMember({
       name: '',
       relation: 'Son',
@@ -110,6 +117,7 @@ export default function FamilyEnrollmentWizard({
       bloodGroup: 'O+',
       mobile: '',
     });
+    setMemberRawMobile('');
     toast.success(`${newMember.name} added to family member list!`);
   };
 
@@ -673,24 +681,41 @@ export default function FamilyEnrollmentWizard({
 
               <div>
                 <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
-                  Blood Group & Mobile
+                  Blood Group
                 </label>
-                <div className="flex gap-2">
+                <select
+                  value={newMember.bloodGroup}
+                  onChange={(e) => setNewMember({ ...newMember, bloodGroup: e.target.value })}
+                  className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C]"
+                >
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
+                  Member Mobile with Dial Code (Optional &bull; Default: {memberDialCode || effectiveDialCode})
+                </label>
+                <div className="flex gap-2 min-w-0">
                   <select
-                    value={newMember.bloodGroup}
-                    onChange={(e) => setNewMember({ ...newMember, bloodGroup: e.target.value })}
-                    className="w-24 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C]"
+                    value={memberDialCode || effectiveDialCode}
+                    onChange={(e) => setMemberDialCode(e.target.value)}
+                    className="w-32 shrink-0 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none truncate"
                   >
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
-                      <option key={bg} value={bg}>{bg}</option>
+                    {majorCountries.map((c) => (
+                      <option key={c.code} value={c.dialCode}>
+                        {c.flag} {c.dialCode} ({c.code})
+                      </option>
                     ))}
                   </select>
                   <input
                     type="tel"
-                    placeholder="Mobile (Optional)"
-                    value={newMember.mobile}
-                    onChange={(e) => setNewMember({ ...newMember, mobile: e.target.value })}
-                    className="flex-1 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs focus:outline-none"
+                    placeholder="Mobile number"
+                    value={memberRawMobile}
+                    onChange={(e) => setMemberRawMobile(e.target.value)}
+                    className="flex-1 min-w-0 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs focus:outline-none focus:border-[#8B5E3C]"
                   />
                 </div>
               </div>
