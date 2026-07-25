@@ -21,61 +21,76 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 const prisma = new PrismaClient();
 
-async function seedAdminEmail() {
-  const email = 'paramkhodiyar1008@gmail.com';
-  const mobileNumber = '919999999999';
-
-  console.log(`[SEED] Upserting SUPER_ADMIN user for: ${email}...`);
-
-  const existingByMobile = await prisma.user.findUnique({
-    where: { mobileNumber },
-  });
-
-  let user;
-  if (existingByMobile) {
-    user = await prisma.user.update({
-      where: { mobileNumber },
-      data: {
-        email,
-        role: 'SUPER_ADMIN',
-        isVerified: true,
-        consentGivenAt: new Date(),
-      },
-    });
-  } else {
-    user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        role: 'SUPER_ADMIN',
-        isVerified: true,
-        consentGivenAt: new Date(),
-      },
-      create: {
-        email,
-        mobileNumber,
-        passwordHash: '',
-        role: 'SUPER_ADMIN',
-        isVerified: true,
-        consentGivenAt: new Date(),
-      },
-    });
-  }
-
-  console.log('\n✅ Successfully registered & activated SUPER_ADMIN user:');
-  console.log(`User ID      : ${user.id}`);
-  console.log(`Email        : ${user.email}`);
-  console.log(`Mobile       : ${user.mobileNumber}`);
-  console.log(`Role         : ${user.role}`);
-  console.log(`Is Verified  : ${user.isVerified}`);
-  console.log('\nYou can now log in directly at /login using: paramkhodiyar1008@gmail.com');
+interface SeedUserConfig {
+  email: string;
+  mobileNumber: string;
+  role: Role;
 }
 
-seedAdminEmail()
+async function seedUsers() {
+  const usersToSeed: SeedUserConfig[] = [
+    {
+      email: 'param.khodiyar2024@nst.rishihood.edu.in',
+      mobileNumber: '919999999901',
+      role: 'SUPER_ADMIN',
+    },
+    {
+      email: 'whatsappbackupparam@gmail.com',
+      mobileNumber: '919999999902',
+      role: 'NRI_ADMIN',
+    },
+    {
+      email: 'paramkhodiyar1008@gmail.com',
+      mobileNumber: '919999999903',
+      role: 'USER',
+    },
+  ];
+
+  console.log('[SEED] Starting user accounts seeding...\n');
+
+  for (const target of usersToSeed) {
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: target.email },
+    });
+
+    let user;
+    if (existingByEmail) {
+      user = await prisma.user.update({
+        where: { email: target.email },
+        data: {
+          role: target.role,
+          isVerified: true,
+          consentGivenAt: new Date(),
+        },
+      });
+    } else {
+      user = await prisma.user.create({
+        data: {
+          email: target.email,
+          mobileNumber: target.mobileNumber,
+          passwordHash: '',
+          role: target.role,
+          isVerified: true,
+          consentGivenAt: new Date(),
+        },
+      });
+    }
+
+    console.log(`✅ Seeded ${user.role} user:`);
+    console.log(`   Email  : ${user.email}`);
+    console.log(`   Mobile : ${user.mobileNumber}`);
+    console.log(`   Role   : ${user.role}\n`);
+  }
+
+  console.log('All 3 accounts seeded successfully!');
+}
+
+seedUsers()
   .catch((err) => {
-    console.error('Failed to seed admin email:', err);
+    console.error('Failed to seed user accounts:', err);
     process.exit(1);
   })
   .finally(async () => {
