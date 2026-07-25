@@ -18,6 +18,7 @@ import {
   Heart,
   Calendar
 } from 'lucide-react';
+import UnlinkedFamilyClient from '../UnlinkedFamilyClient';
 
 export default async function FamilyDetailsPage({
   searchParams,
@@ -53,14 +54,7 @@ export default async function FamilyDetailsPage({
   }
 
   if (!familyId) {
-    return (
-      <div className="bg-white p-8 rounded-lg border border-[#E5DDD0] text-center max-w-lg mx-auto">
-        <p className="font-semibold text-amber-600 text-lg mb-2">No Family Selected</p>
-        <p className="text-[#6A5B4D]">
-          There are no family census records linked or selected.
-        </p>
-      </div>
-    );
+    return <UnlinkedFamilyClient />;
   }
 
   // Load Family & Members

@@ -20,6 +20,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { format } from 'date-fns';
+import UnlinkedFamilyClient from './UnlinkedFamilyClient';
 
 export default async function DashboardOverview() {
   const session = await getAuthSession();
@@ -55,19 +56,12 @@ export default async function DashboardOverview() {
   if (user.role === 'USER') {
     // FAMILY USER VIEW
     const family = user.family;
+    if (!family) {
+      return <UnlinkedFamilyClient userEmail={user.email} />;
+    }
+
     const globalFamiliesCount = await prisma.family.count();
     const globalMembersCount = await prisma.member.count({ where: { isAlive: true } });
-
-    if (!family) {
-      return (
-        <div className="bg-white p-8 rounded-lg border border-red-200 text-center max-w-lg mx-auto">
-          <p className="font-semibold text-red-600 text-lg mb-2">Unlinked Account</p>
-          <p className="text-[#6A5B4D] mb-4">
-            Your account is not linked to any family census record. Please contact your Ghatak administrator to link your account.
-          </p>
-        </div>
-      );
-    }
 
     const headMember = family.members.find(m => m.relation === 'Head') || family.members[0];
     const pendingCount = family.updateRequests.length;
