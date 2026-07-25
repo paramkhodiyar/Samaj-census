@@ -86,12 +86,33 @@ export default async function FamilyDetailsPage({
     );
   }
 
+  // Load pending update requests for inline status visibility
+  const pendingRequests = await prisma.updateRequest.findMany({
+    where: { familyId: family.id, status: 'PENDING' },
+    include: { changes: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
   // Sort members to place 'Head' at the very top
   const sortedMembers = [...family.members].sort((a, b) => {
     if (a.relation.toLowerCase() === 'head') return -1;
     if (b.relation.toLowerCase() === 'head') return 1;
     return 0;
   });
+
+  const serializedRequests = pendingRequests.map((r) => ({
+    id: r.id,
+    type: r.type,
+    status: r.status,
+    comments: r.comments,
+    createdAt: r.createdAt.toISOString(),
+    changes: r.changes.map((c) => ({
+      recordId: c.recordId,
+      fieldName: c.fieldName,
+      oldValue: c.oldValue,
+      newValue: c.newValue,
+    })),
+  }));
 
   return (
     <div className="space-y-6">
@@ -163,7 +184,11 @@ export default async function FamilyDetailsPage({
           Family Members ({family.members.length})
         </h2>
 
-        <FamilyMembersView initialMembers={sortedMembers} />
+        <FamilyMembersView
+          initialMembers={sortedMembers}
+          pendingRequests={serializedRequests}
+          isHeadUser={session.role === 'USER'}
+        />
       </div>
     </div>
   );

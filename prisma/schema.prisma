@@ -102,6 +102,7 @@ model Member {
 model User {
   id           String        @id @default(uuid())
   mobileNumber String        @unique
+  email        String?       @unique
   passwordHash String
   role         Role          @default(USER)
   isVerified   Boolean       @default(false)

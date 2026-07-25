@@ -543,3 +543,92 @@ export async function requestDeactivationAction() {
     return { error: 'Failed to submit deactivation request.' };
   }
 }
+
+/**
+ * Submits a quick single-member inline edit request.
+ */
+export async function submitSingleMemberQuickEditAction(params: {
+  memberId: string;
+  occupation: string;
+  education: string;
+  bloodGroup: string;
+  mobile?: string;
+  email?: string;
+  isAlive: boolean;
+}) {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return { error: 'UNAUTHENTICATED' };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { familyId: true },
+    });
+
+    if (!user || !user.familyId) {
+      return { error: 'No linked family record found.' };
+    }
+
+    const member = await prisma.member.findUnique({
+      where: { id: params.memberId },
+    });
+
+    if (!member || member.familyId !== user.familyId) {
+      return { error: 'Member not found or unauthorized.' };
+    }
+
+    const request = await prisma.updateRequest.create({
+      data: {
+        familyId: user.familyId,
+        requesterId: session.userId,
+        type: 'EDIT_INFO',
+        status: 'PENDING',
+        comments: `Quick inline edit for ${member.name}`,
+      },
+    });
+
+    const changes: any[] = [];
+    const fields = ['occupation', 'education', 'bloodGroup', 'mobile', 'email'] as const;
+
+    for (const f of fields) {
+      const newVal = (params[f] || '').trim();
+      const oldVal = ((member[f] as string) || '').trim();
+      if (newVal !== oldVal) {
+        changes.push({
+          requestId: request.id,
+          action: 'UPDATE_FIELD',
+          tableName: 'Member',
+          recordId: member.id,
+          fieldName: f,
+          oldValue: JSON.stringify(oldVal),
+          newValue: JSON.stringify(newVal),
+        });
+      }
+    }
+
+    if (params.isAlive !== member.isAlive) {
+      changes.push({
+        requestId: request.id,
+        action: 'UPDATE_FIELD',
+        tableName: 'Member',
+        recordId: member.id,
+        fieldName: 'isAlive',
+        oldValue: JSON.stringify(member.isAlive),
+        newValue: JSON.stringify(params.isAlive),
+      });
+    }
+
+    if (changes.length > 0) {
+      await prisma.requestChange.createMany({ data: changes });
+    }
+
+    revalidatePath('/dashboard/family');
+    return { success: true, requestId: request.id };
+  } catch (err: any) {
+    console.error('Quick edit error:', err);
+    return { error: 'Failed to submit member quick edit.' };
+  }
+}
+
