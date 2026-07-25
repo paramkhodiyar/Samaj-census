@@ -43,7 +43,7 @@ export default function FamilyEnrollmentWizard({
   // Step 1: Head & Location State
   const [headName, setHeadName] = useState('');
   const [headAge, setHeadAge] = useState<number>(35);
-  const [headGender, setHeadGender] = useState<'MALE' | 'FEMALE'>('MALE');
+  const [headGender, setHeadGender] = useState<'MALE' | 'FEMALE' | 'OTHER'>('MALE');
   const [headOccupation, setHeadOccupation] = useState('Business');
   const [headEducation, setHeadEducation] = useState('Graduate');
   const [headBloodGroup, setHeadBloodGroup] = useState('O+');
@@ -280,28 +280,34 @@ export default function FamilyEnrollmentWizard({
 
             <div className="min-w-0">
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
-                Family Head Gender & Age *
+                Family Head Gender *
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={headGender}
-                  onChange={(e) => setHeadGender(e.target.value as 'MALE' | 'FEMALE')}
-                  className="flex-1 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C] focus:outline-none"
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                </select>
-                <input
-                  type="number"
-                  required
-                  min={18}
-                  max={120}
-                  value={headAge}
-                  onChange={(e) => setHeadAge(parseInt(e.target.value, 10) || 0)}
-                  placeholder="Age"
-                  className="w-24 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
-                />
-              </div>
+              <CustomDropdown
+                options={[
+                  { value: 'MALE', label: 'Male' },
+                  { value: 'FEMALE', label: 'Female' },
+                  { value: 'OTHER', label: 'Other' },
+                ]}
+                value={headGender}
+                onChange={(val) => setHeadGender(val as 'MALE' | 'FEMALE' | 'OTHER')}
+                placeholder="Select Gender"
+              />
+            </div>
+
+            <div className="min-w-0">
+              <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
+                Family Head Age *
+              </label>
+              <input
+                type="number"
+                required
+                min={18}
+                max={120}
+                value={headAge}
+                onChange={(e) => setHeadAge(parseInt(e.target.value, 10) || 0)}
+                placeholder="Age in years"
+                className="w-full p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+              />
             </div>
 
             <div className="min-w-0">
@@ -482,32 +488,32 @@ export default function FamilyEnrollmentWizard({
                   <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
                     Ghatak Community Cluster (Optional)
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={[
+                      { value: '', label: '-- None / NRI International --' },
+                      ...ghataks.map((g) => ({ value: g.id, label: `${g.name} Ghatak (${g.code})` })),
+                    ]}
                     value={selectedGhatakId}
-                    onChange={(e) => setSelectedGhatakId(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs text-[#2D2D2D]"
-                  >
-                    <option value="">-- None / NRI International --</option>
-                    {ghataks.map((g) => (
-                      <option key={g.id} value={g.id}>{g.name} Ghatak ({g.code})</option>
-                    ))}
-                  </select>
+                    onChange={setSelectedGhatakId}
+                    placeholder="-- None / NRI International --"
+                    searchable
+                  />
                 </div>
 
                 <div>
                   <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
                     Pradeshik Province Zone (Optional)
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={[
+                      { value: '', label: '-- None / NRI International --' },
+                      ...pradeshiks.map((p) => ({ value: p.id, label: `${p.name} Zone (${p.code})` })),
+                    ]}
                     value={selectedPradeshikId}
-                    onChange={(e) => setSelectedPradeshikId(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs text-[#2D2D2D]"
-                  >
-                    <option value="">-- None / NRI International --</option>
-                    {pradeshiks.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} Zone ({p.code})</option>
-                    ))}
-                  </select>
+                    onChange={setSelectedPradeshikId}
+                    placeholder="-- None / NRI International --"
+                    searchable
+                  />
                 </div>
               </div>
             </div>
@@ -619,38 +625,41 @@ export default function FamilyEnrollmentWizard({
                 <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
                   Relationship *
                 </label>
-                <select
+                <CustomDropdown
+                  options={['Wife', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Grandfather', 'Grandmother']}
                   value={newMember.relation}
-                  onChange={(e) => setNewMember({ ...newMember, relation: e.target.value })}
-                  className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C]"
-                >
-                  {['Wife', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Grandfather', 'Grandmother'].map((rel) => (
-                    <option key={rel} value={rel}>{rel}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewMember({ ...newMember, relation: val })}
+                  placeholder="Select Relationship"
+                />
               </div>
 
               <div>
                 <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
-                  Age & Gender *
+                  Age *
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Age"
-                    value={newMember.age}
-                    onChange={(e) => setNewMember({ ...newMember, age: parseInt(e.target.value, 10) || 0 })}
-                    className="w-20 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs focus:outline-none"
-                  />
-                  <select
-                    value={newMember.gender}
-                    onChange={(e) => setNewMember({ ...newMember, gender: e.target.value as any })}
-                    className="flex-1 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#2D2D2D]"
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                  </select>
-                </div>
+                <input
+                  type="number"
+                  placeholder="Age"
+                  value={newMember.age}
+                  onChange={(e) => setNewMember({ ...newMember, age: parseInt(e.target.value, 10) || 0 })}
+                  className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
+                  Gender *
+                </label>
+                <CustomDropdown
+                  options={[
+                    { value: 'MALE', label: 'Male' },
+                    { value: 'FEMALE', label: 'Female' },
+                    { value: 'OTHER', label: 'Other' },
+                  ]}
+                  value={newMember.gender}
+                  onChange={(val) => setNewMember({ ...newMember, gender: val as any })}
+                  placeholder="Select Gender"
+                />
               </div>
 
               <div>
@@ -683,15 +692,12 @@ export default function FamilyEnrollmentWizard({
                 <label className="block font-bold text-[#6A5B4D] mb-1 uppercase text-[10px]">
                   Blood Group
                 </label>
-                <select
+                <CustomDropdown
+                  options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
                   value={newMember.bloodGroup}
-                  onChange={(e) => setNewMember({ ...newMember, bloodGroup: e.target.value })}
-                  className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C]"
-                >
-                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
-                    <option key={bg} value={bg}>{bg}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewMember({ ...newMember, bloodGroup: val })}
+                  placeholder="Select Blood Group"
+                />
               </div>
 
               <div className="sm:col-span-2">
@@ -699,17 +705,15 @@ export default function FamilyEnrollmentWizard({
                   Member Mobile with Dial Code (Optional &bull; Default: {memberDialCode || effectiveDialCode})
                 </label>
                 <div className="flex gap-2 min-w-0">
-                  <select
-                    value={memberDialCode || effectiveDialCode}
-                    onChange={(e) => setMemberDialCode(e.target.value)}
-                    className="w-32 shrink-0 p-2.5 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none truncate"
-                  >
-                    {majorCountries.map((c) => (
-                      <option key={c.code} value={c.dialCode}>
-                        {c.flag} {c.dialCode} ({c.code})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-40 shrink-0">
+                    <CustomDropdown
+                      options={majorCountries.map((c) => ({ value: c.dialCode, label: `${c.flag} ${c.dialCode} (${c.code})` }))}
+                      value={memberDialCode || effectiveDialCode}
+                      onChange={setMemberDialCode}
+                      placeholder="Dial Code"
+                      searchable
+                    />
+                  </div>
                   <input
                     type="tel"
                     placeholder="Mobile number"
