@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- ============================================================ -->
+  <!-- HIGH-RESOLUTION VECTOR EMBLEM LAYER (300 DPI ULTRA CRISP)    -->
+  <!-- ============================================================ -->
+  <g id="logo-base-highres">
+    <image href="/logo.png" x="0" y="0" width="1024" height="1024" />
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- MODULAR ANIMATION OVERLAY GROUPS (TARGETABLE BY SVG ID)       -->
+  <!-- ============================================================ -->
+  
+  <!-- Group: Outer Frame & Ring -->
+  <g id="logo-outer-frame" pointer-events="none">
+    <circle id="outer-rim-anchor" cx="512" cy="512" r="500" fill="none" stroke="transparent" stroke-width="2" />
+  </g>
+
+  <!-- Group: Top Gujarati Curved Typography -->
+  <g id="logo-gujarati-text" pointer-events="none">
+    <path id="topArcGujaratiAnchor" d="M 152 512 A 360 360 0 0 1 872 512" fill="none" />
+  </g>
+
+  <!-- Group: Side Separator Dots -->
+  <g id="logo-side-dots" pointer-events="none">
+    <circle id="left-dot-anchor" cx="116" cy="542" r="16" fill="transparent" />
+    <circle id="right-dot-anchor" cx="908" cy="542" r="16" fill="transparent" />
+  </g>
+
+  <!-- Group: Bottom English Curved Typography -->
+  <g id="logo-english-text" pointer-events="none">
+    <path id="bottomArcEnglishAnchor" d="M 872 512 A 360 360 0 0 1 152 512" fill="none" />
+  </g>
+
+  <!-- Group: Sacred Banyan Tree Emblem (Vat Vriksha) -->
+  <g id="logo-banyan-tree" pointer-events="none">
+    <path id="tree-trunk-anchor" d="M 460 550 C 470 510, 480 470, 512 430 C 540 470, 550 510, 564 550 Z" fill="transparent" />
+    <circle id="tree-canopy-anchor" cx="512" cy="390" r="220" fill="transparent" />
+  </g>
+
+  <!-- Group: Sacred Sanskrit Motto -->
+  <g id="logo-sanskrit-motto" pointer-events="none">
+    <text id="sanskrit-motto-anchor" x="512" y="685" fill="transparent" font-size="42" text-anchor="middle">
+      સહ વીર્યં કરવાવહૈ
+    </text>
+  </g>
+</svg>
