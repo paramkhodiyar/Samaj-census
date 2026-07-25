@@ -94,7 +94,8 @@ function RegisterPageContent() {
   };
 
   // 2. New Family Enrollment States
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [dialCode, setDialCode] = useState('+254');
   const [customDialCode, setCustomDialCode] = useState('+');
   const [rawMobile, setRawMobile] = useState('');
@@ -121,15 +122,16 @@ function RegisterPageContent() {
     const cityVal = selectedCountry === 'other' ? customCity : (selectedCity === 'other' ? customCity : selectedCity);
     const activeDialCode = dialCode === 'CUSTOM' ? customDialCode : dialCode;
     const finalMobile = `${activeDialCode} ${rawMobile.trim()}`.trim();
+    const fullNameVal = `${firstName.trim()} ${lastName.trim()}`.trim();
 
-    if (!fullName || !rawMobile || !email || !countryVal || !cityVal || !selectedVillage) {
+    if (!firstName || !lastName || !rawMobile || !email || !countryVal || !cityVal || !selectedVillage) {
       toast.error('Please fill in all required fields.');
       return;
     }
 
     setIsSendingJoin(true);
     const result = await submitJoinRequestAction({
-      fullName,
+      fullName: fullNameVal,
       mobileNumber: finalMobile,
       email,
       country: countryVal,
@@ -308,7 +310,7 @@ function RegisterPageContent() {
                     Enrollment Request Submitted
                   </h3>
                   <p className="text-xs text-[#6A5B4D] leading-relaxed">
-                    Thank you, <strong>{fullName}</strong>. Your enrollment request has been submitted to the NRI Admin. Once approved, you can log in using your mobile number and OTP.
+                    Thank you, <strong>{firstName} {lastName}</strong>. Your enrollment request has been submitted to the NRI Admin. Once approved, you can log in using your mobile number and OTP.
                   </p>
                   <button
                     onClick={() => setIsJoinSubmitted(false)}
@@ -319,11 +321,11 @@ function RegisterPageContent() {
                 </div>
               ) : (
                 <form onSubmit={handleJoinSubmit} className="space-y-4 text-left">
-                  {/* Head Name & Mobile */}
+                  {/* Row 1: First Name & Last Name */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
-                        Head Full Name <span className="text-red-500">*</span>
+                        Head First Name <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
@@ -332,14 +334,36 @@ function RegisterPageContent() {
                         <input
                           type="text"
                           required
-                          placeholder="e.g. Ramesh Rathod"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="e.g. Ramesh"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
                           className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
                         />
                       </div>
                     </div>
 
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
+                        Head Last Name <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
+                          <User className="w-4 h-4" />
+                        </span>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Rathod"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Mobile Number & Email Address */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
                         Mobile Number <span className="text-red-500">*</span>
@@ -412,25 +436,24 @@ function RegisterPageContent() {
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Email */}
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
-                        <Mail className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="email"
-                        required
-                        placeholder="e.g. head@family.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
-                      />
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
+                          <Mail className="w-4 h-4" />
+                        </span>
+                        <input
+                          type="email"
+                          required
+                          placeholder="e.g. head@family.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
+                        />
+                      </div>
                     </div>
                   </div>
 
