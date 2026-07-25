@@ -11,6 +11,11 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 export const metadata: Metadata = {
   title: "Digital Family Record Portal | Samaj Census",
   description: "Official census registry and verification portal for Shri Kutch Gurjar Kshatriya Samaj Mahasabha.",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

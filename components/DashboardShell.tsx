@@ -154,8 +154,8 @@ export default function DashboardShell({ session, children }: DashboardShellProp
       <header className="sticky top-0 z-40 bg-white border-b border-[#E5DDD0] shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#FAF7F2] border border-[#D4A373] flex items-center justify-center overflow-hidden p-0.5 shrink-0">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            <div className="w-11 h-11 rounded-full bg-white border border-[#D4A373] flex items-center justify-center overflow-hidden p-1 shrink-0">
+              <img src="/logo.svg" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-serif font-bold text-sm md:text-base text-[#8B5E3C] truncate max-w-[160px] sm:max-w-none">
               {t('samajTitle')}

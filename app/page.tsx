@@ -33,10 +33,9 @@ export default function WelcomeSplash() {
           {/* Subtle Traditional Divider Accent */}
           <div className="w-24 h-1 bg-[#D4A373] mx-auto mb-8 rounded-full"></div>
 
-          {/* Community Logo */}
           <div className="w-20 h-20 rounded-full bg-[#FAF7F2] border border-[#D4A373] flex items-center justify-center mx-auto mb-6 overflow-hidden p-2">
             <img
-              src="/logo.png"
+              src="/logo.svg"
               alt="Samaj Logo"
               className="w-full h-full object-contain"
             />
