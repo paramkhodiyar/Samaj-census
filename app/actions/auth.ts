@@ -285,12 +285,14 @@ export async function sendOtpAction(mobileNumber: string) {
 
     const cleanInput = mobileNumber.trim();
     const cleanEmail = cleanInput.toLowerCase();
+    const normalizedInput = normalizeMobile(cleanInput);
 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: cleanEmail },
           { mobileNumber: cleanInput },
+          { mobileNumber: normalizedInput },
         ],
       },
     });
@@ -302,13 +304,16 @@ export async function sendOtpAction(mobileNumber: string) {
           where: {
             OR: [
               { mobile: cleanInput },
+              { mobile: normalizedInput },
               { members: { some: { email: cleanEmail, relation: 'Head' } } },
+              { members: { some: { mobile: cleanInput, relation: 'Head' } } },
+              { members: { some: { mobile: normalizedInput, relation: 'Head' } } },
             ],
           },
         })) ||
         (await prisma.member.findFirst({
           where: {
-            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
+            OR: [{ mobile: cleanInput }, { mobile: normalizedInput }, { email: cleanEmail }],
             relation: 'Head',
           },
         }));
@@ -319,6 +324,7 @@ export async function sendOtpAction(mobileNumber: string) {
           where: {
             OR: [
               { mobileNumber: cleanInput },
+              { mobileNumber: normalizedInput },
               { email: cleanEmail },
             ],
           },
@@ -511,37 +517,40 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
   try {
     const cleanInput = mobileNumber.trim();
     const cleanEmail = cleanInput.toLowerCase();
+    const normalizedInput = normalizeMobile(cleanInput);
 
     let user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: cleanEmail },
           { mobileNumber: cleanInput },
+          { mobileNumber: normalizedInput },
         ],
       },
     });
 
     if (!user) {
-      const isHead =
-        (await prisma.family.findFirst({
-          where: {
-            OR: [
-              { mobile: cleanInput },
-              { members: { some: { email: cleanEmail, relation: 'Head' } } },
-            ],
-          },
-        })) ||
-        (await prisma.member.findFirst({
-          where: {
-            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
-            relation: 'Head',
-          },
-        }));
+      // Find matching family profile
+      const family = await prisma.family.findFirst({
+        where: {
+          OR: [
+            { mobile: cleanInput },
+            { mobile: normalizedInput },
+            { members: { some: { email: cleanEmail, relation: 'Head' } } },
+            { members: { some: { mobile: cleanInput, relation: 'Head' } } },
+            { members: { some: { mobile: normalizedInput, relation: 'Head' } } },
+            { members: { some: { email: cleanEmail } } },
+            { members: { some: { mobile: cleanInput } } },
+            { members: { some: { mobile: normalizedInput } } },
+          ],
+        },
+      });
 
-      if (!isHead) {
+      if (!family) {
+        // Check non-head member or unregistered status
         const isMember = await prisma.member.findFirst({
           where: {
-            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
+            OR: [{ mobile: cleanInput }, { mobile: normalizedInput }, { email: cleanEmail }],
           },
         });
 
@@ -552,18 +561,24 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
         return { error: 'UNREGISTERED' };
       }
 
-      // Auto-activate: Find the pre-existing family
-      const family = await prisma.family.findFirst({
+      // Check if the member is a Head member in this family
+      const headMember = await prisma.member.findFirst({
         where: {
-          OR: [
-            { mobile: mobileNumber },
-            { members: { some: { mobile: mobileNumber, relation: 'Head' } } }
-          ]
-        }
+          familyId: family.id,
+          relation: 'Head',
+        },
       });
 
-      if (!family) {
-        return { error: 'Census family records not found' };
+      const isInputEmail = cleanInput.includes('@');
+      const isHead =
+        (headMember && (
+          (headMember.email && headMember.email.toLowerCase() === cleanEmail) ||
+          (headMember.mobile && (headMember.mobile === cleanInput || normalizeMobile(headMember.mobile) === normalizedInput)) ||
+          (family.mobile && (family.mobile === cleanInput || normalizeMobile(family.mobile) === normalizedInput))
+        ));
+
+      if (!isHead) {
+        return { error: 'BLOCKED_NON_HEAD' };
       }
 
       // Verify OTP first before creating the user
@@ -594,14 +609,22 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
         return { error: 'Invalid or expired OTP' };
       }
 
+      // Determine proper user fields
+      const userEmail = isInputEmail ? cleanEmail : (headMember?.email || null);
+      const userMobile = isInputEmail
+        ? (headMember?.mobile ? normalizeMobile(headMember.mobile) : normalizedInput)
+        : normalizedInput;
+
       // Create new active User account
       user = await prisma.user.create({
         data: {
-          mobileNumber,
+          email: userEmail,
+          mobileNumber: userMobile,
           familyId: family.id,
           role: 'USER',
           isVerified: true,
           passwordHash: '',
+          consentGivenAt: new Date(),
         }
       });
     } else {

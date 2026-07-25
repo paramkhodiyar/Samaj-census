@@ -56,6 +56,22 @@ async function seedUsers() {
       where: { email: target.email },
     });
 
+    // If user role is USER, attach familyId if available
+    let familyId: string | undefined;
+    if (target.role === 'USER') {
+      const family = await prisma.family.findFirst({
+        where: {
+          OR: [
+            { familyId: 'KG-NRI-00001' },
+            { members: { some: { email: target.email } } }
+          ]
+        }
+      });
+      if (family) {
+        familyId = family.id;
+      }
+    }
+
     let user;
     if (existingByEmail) {
       user = await prisma.user.update({
@@ -64,6 +80,7 @@ async function seedUsers() {
           mobileNumber: target.mobileNumber,
           role: target.role,
           isVerified: true,
+          familyId: familyId,
           consentGivenAt: new Date(),
         },
       });
@@ -75,6 +92,7 @@ async function seedUsers() {
           passwordHash: '',
           role: target.role,
           isVerified: true,
+          familyId: familyId,
           consentGivenAt: new Date(),
         },
       });

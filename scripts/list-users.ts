@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const envPath = path.join(__dirname, '../.env.local');
+const envPath = path.join(process.cwd(), '.env.local');
 if (fs.existsSync(envPath)) {
   const envConfig = fs.readFileSync(envPath, 'utf8');
   for (const line of envConfig.split('\n')) {

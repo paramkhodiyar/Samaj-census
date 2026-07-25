@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getAuthSession } from '@/lib/auth';
 import { sendJoinRequestApprovalEmail } from '@/lib/email';
+import { normalizeMobile } from '@/lib/utils';
 
 // Action: Submit a Join/Enrollment Request
 export async function submitJoinRequestAction(data: {
@@ -168,7 +169,47 @@ export async function approveJoinRequestAction(requestId: string) {
         },
       });
 
-      // 3. Mark request as Approved
+      // 3. Provision or link the User account for the approved applicant
+      const normalizedMobile = normalizeMobile(request.mobileNumber);
+      const cleanEmail = request.email.trim().toLowerCase();
+
+      const existingUser = await tx.user.findFirst({
+        where: {
+          OR: [
+            { email: cleanEmail },
+            { mobileNumber: normalizedMobile },
+            { mobileNumber: request.mobileNumber },
+          ],
+        },
+      });
+
+      if (existingUser) {
+        await tx.user.update({
+          where: { id: existingUser.id },
+          data: {
+            email: cleanEmail,
+            mobileNumber: normalizedMobile,
+            familyId: family.id,
+            role: 'USER',
+            isVerified: true,
+            consentGivenAt: request.consentGivenAt || new Date(),
+          },
+        });
+      } else {
+        await tx.user.create({
+          data: {
+            email: cleanEmail,
+            mobileNumber: normalizedMobile,
+            familyId: family.id,
+            role: 'USER',
+            isVerified: true,
+            passwordHash: '',
+            consentGivenAt: request.consentGivenAt || new Date(),
+          },
+        });
+      }
+
+      // 4. Mark request as Approved
       await tx.joinRequest.update({
         where: { id: requestId },
         data: { status: 'APPROVED' },
