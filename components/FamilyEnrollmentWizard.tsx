@@ -42,6 +42,11 @@ export default function FamilyEnrollmentWizard({
 
   // Step 1: Head & Location State
   const [headName, setHeadName] = useState('');
+  const [headAge, setHeadAge] = useState<number>(35);
+  const [headGender, setHeadGender] = useState<'MALE' | 'FEMALE'>('MALE');
+  const [headOccupation, setHeadOccupation] = useState('Business');
+  const [headEducation, setHeadEducation] = useState('Graduate');
+  const [headBloodGroup, setHeadBloodGroup] = useState('O+');
   const [country, setCountry] = useState('Kenya');
   const [customCountry, setCustomCountry] = useState('');
   const [city, setCity] = useState('');
@@ -115,8 +120,8 @@ export default function FamilyEnrollmentWizard({
   };
 
   const handleNextToStep2 = () => {
-    if (!headName.trim() || !effectiveCountry || !city.trim() || !nativeVillage.trim() || !address.trim() || !rawPhone.trim()) {
-      toast.error('Please complete all required fields (Head Name, Country, City, Native Village, Mobile, Address) in Step 1.');
+    if (!headName.trim() || !headAge || !effectiveCountry || !city.trim() || !nativeVillage.trim() || !address.trim() || !rawPhone.trim()) {
+      toast.error('Please complete all required fields (Head Name, Age, Gender, Country, City, Native Village, Mobile, Address) in Step 1.');
       return;
     }
     setCurrentStep(2);
@@ -135,6 +140,11 @@ export default function FamilyEnrollmentWizard({
     setIsSubmitting(true);
     const res = await createFamilyForUserAction({
       headName,
+      headAge,
+      headGender,
+      headOccupation,
+      headEducation,
+      headBloodGroup,
       country: effectiveCountry,
       city,
       nativeVillage,
@@ -258,6 +268,54 @@ export default function FamilyEnrollmentWizard({
                 placeholder="e.g. Param Khodiyar"
                 className="w-full p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
               />
+            </div>
+
+            <div className="min-w-0">
+              <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
+                Family Head Gender & Age *
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={headGender}
+                  onChange={(e) => setHeadGender(e.target.value as 'MALE' | 'FEMALE')}
+                  className="flex-1 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-semibold text-[#8B5E3C] focus:outline-none"
+                >
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
+                <input
+                  type="number"
+                  required
+                  min={18}
+                  max={120}
+                  value={headAge}
+                  onChange={(e) => setHeadAge(parseInt(e.target.value, 10) || 0)}
+                  placeholder="Age"
+                  className="w-24 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+                />
+              </div>
+            </div>
+
+            <div className="min-w-0">
+              <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
+                Head Education & Occupation
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Education (e.g. Graduate)"
+                  value={headEducation}
+                  onChange={(e) => setHeadEducation(e.target.value)}
+                  className="flex-1 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+                />
+                <input
+                  type="text"
+                  placeholder="Occupation (e.g. Business)"
+                  value={headOccupation}
+                  onChange={(e) => setHeadOccupation(e.target.value)}
+                  className="flex-1 p-3 bg-[#FAF7F2]/50 border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
+                />
+              </div>
             </div>
 
             {/* Country Selector with Flags & Other option */}
@@ -493,7 +551,7 @@ export default function FamilyEnrollmentWizard({
                     </span>
                   </div>
                   <p className="text-xs text-[#6A5B4D] mt-0.5">
-                    {fullMobile} &bull; {city}, {effectiveCountry} &bull; Native: {nativeVillage}
+                    {headAge} Yrs &bull; {headGender} &bull; {headEducation} &bull; {headOccupation} &bull; {fullMobile}
                   </p>
                 </div>
               </div>
@@ -721,7 +779,7 @@ export default function FamilyEnrollmentWizard({
               <div className="p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs">
                 <span className="font-bold text-[#2D2D2D]">{headName}</span>{' '}
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#8B5E3C] text-white">Head</span>
-                <p className="text-[11px] text-[#6A5B4D] mt-1">{fullMobile}</p>
+                <p className="text-[11px] text-[#6A5B4D] mt-1">{headAge} Yrs &bull; {headGender} &bull; {headEducation} &bull; {headOccupation} &bull; {fullMobile}</p>
               </div>
               {/* Additional Members */}
               {members.map((m, idx) => (

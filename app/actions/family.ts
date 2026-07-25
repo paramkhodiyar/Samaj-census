@@ -6,6 +6,11 @@ import { revalidatePath } from 'next/cache';
 
 export async function createFamilyForUserAction(data: {
   headName: string;
+  headAge?: number;
+  headGender?: 'MALE' | 'FEMALE' | 'OTHER';
+  headOccupation?: string;
+  headEducation?: string;
+  headBloodGroup?: string;
   country: string;
   city: string;
   indiaHometown?: string;
@@ -89,15 +94,15 @@ export async function createFamilyForUserAction(data: {
           pradeshikId,
           members: {
             create: [
-              // Create Head member
+              // Create Head member using provided age, gender, education, occupation
               {
                 name: data.headName.trim(),
                 relation: 'Head',
-                age: 30, // Default age
-                gender: 'MALE',
-                occupation: 'Business',
-                education: 'Graduate',
-                bloodGroup: 'O+',
+                age: data.headAge || 35,
+                gender: data.headGender || 'MALE',
+                occupation: data.headOccupation?.trim() || 'Business',
+                education: data.headEducation?.trim() || 'Graduate',
+                bloodGroup: data.headBloodGroup?.trim() || 'O+',
                 mobile: data.mobile.trim(),
                 email: user.email || data.email || null,
               },
