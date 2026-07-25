@@ -178,6 +178,8 @@ async function sendWhatsAppOTP(mobileNumber: string, code: string): Promise<bool
   }
 }
 
+import { sendLoginOtpEmail } from '@/lib/email';
+
 // Helper: Generate OTP
 async function generateAndSaveOTP(mobileNumber: string) {
   // Generate a random 6-digit code
@@ -194,6 +196,8 @@ async function generateAndSaveOTP(mobileNumber: string) {
     },
   });
 
+  const isEmail = mobileNumber.includes('@');
+
   // Log to server console
   if (process.env.NODE_ENV === 'development') {
     console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}: ${code} (Development Log)`);
@@ -201,8 +205,14 @@ async function generateAndSaveOTP(mobileNumber: string) {
     console.log(`[OTP SERVICE] Generated OTP for ${mobileNumber}`);
   }
   
-  // Dispatch to WhatsApp
-  const isDelivered = await sendWhatsAppOTP(mobileNumber, code);
+  // Dispatch via Email or WhatsApp depending on input type
+  let isDelivered = false;
+  if (isEmail) {
+    isDelivered = await sendLoginOtpEmail(mobileNumber, code);
+  } else {
+    isDelivered = await sendWhatsAppOTP(mobileNumber, code);
+  }
+
   if (!isDelivered) {
     // Delete OTP record immediately to prevent stale states
     await prisma.verificationCode.deleteMany({
