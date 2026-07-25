@@ -270,23 +270,41 @@ export async function sendOtpAction(mobileNumber: string) {
       });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { mobileNumber },
+    const cleanInput = mobileNumber.trim();
+    const cleanEmail = cleanInput.toLowerCase();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { mobileNumber: cleanInput },
+        ],
+      },
     });
 
     if (!user) {
       // User not registered. Check if they are in the census as head
       const isHead =
         (await prisma.family.findFirst({
-          where: { mobile: mobileNumber },
+          where: {
+            OR: [
+              { mobile: cleanInput },
+              { members: { some: { email: cleanEmail, relation: 'Head' } } },
+            ],
+          },
         })) ||
         (await prisma.member.findFirst({
-          where: { mobile: mobileNumber, relation: 'Head' },
+          where: {
+            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
+            relation: 'Head',
+          },
         }));
 
       if (!isHead) {
         const isMember = await prisma.member.findFirst({
-          where: { mobile: mobileNumber },
+          where: {
+            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
+          },
         });
 
         if (isMember) {
@@ -301,7 +319,7 @@ export async function sendOtpAction(mobileNumber: string) {
     if (user && user.role === 'USER') {
       const isNonHead = (await prisma.member.findFirst({
         where: {
-          OR: [{ email: mobileNumber }, { mobile: mobileNumber }],
+          OR: [{ email: cleanEmail }, { mobile: cleanInput }],
           NOT: { relation: 'Head' },
         },
       })) !== null;
@@ -437,22 +455,40 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
   }
 
   try {
-    let user = await prisma.user.findUnique({
-      where: { mobileNumber },
+    const cleanInput = mobileNumber.trim();
+    const cleanEmail = cleanInput.toLowerCase();
+
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { mobileNumber: cleanInput },
+        ],
+      },
     });
 
     if (!user) {
       const isHead =
         (await prisma.family.findFirst({
-          where: { mobile: mobileNumber },
+          where: {
+            OR: [
+              { mobile: cleanInput },
+              { members: { some: { email: cleanEmail, relation: 'Head' } } },
+            ],
+          },
         })) ||
         (await prisma.member.findFirst({
-          where: { mobile: mobileNumber, relation: 'Head' },
+          where: {
+            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
+            relation: 'Head',
+          },
         }));
 
       if (!isHead) {
         const isMember = await prisma.member.findFirst({
-          where: { mobile: mobileNumber },
+          where: {
+            OR: [{ mobile: cleanInput }, { email: cleanEmail }],
+          },
         });
 
         if (isMember) {

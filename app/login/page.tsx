@@ -77,7 +77,15 @@ export default function LoginPage() {
     setIsSendingOtp(false);
 
     if (result?.error) {
-      toast.error(result.error);
+      if (result.error === 'BLOCKED_NON_HEAD') {
+        setMobileStatus('BLOCKED_NON_HEAD');
+      } else if (result.error === 'UNREGISTERED') {
+        setMobileStatus('UNREGISTERED');
+      } else if (result.error === 'NOT_ACTIVATED') {
+        setMobileStatus('NOT_ACTIVATED');
+      } else {
+        toast.error(result.error);
+      }
     } else if (result?.success) {
       setMobileStatus('ACTIVE');
       setOtpSent(true);
@@ -288,18 +296,21 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-serif font-bold text-[#8B5E3C] mb-2">
-                      Only Family Heads Can Log In
+                      Access Restricted: Family Head Required
                     </h3>
-                    <p className="text-sm text-[#6A5B4D] leading-relaxed">
-                      Please log in using your Family Head's mobile number or email. Only family heads can access the census portal. If you need to make corrections or updates, ask your Family Head to log in and edit the family records.
+                    <p className="text-xs text-[#6A5B4D] leading-relaxed">
+                      To protect family privacy and maintain strict census record accuracy under DPDP guidelines, portal sign-in is reserved for designated <strong>Family Heads</strong>.
+                    </p>
+                    <p className="text-xs text-[#6A5B4D] leading-relaxed mt-2">
+                      If you are a family member, please ask your Family Head to log in with their registered email or mobile number to view or update your family records.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileStatus('IDLE')}
-                    className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-sm"
+                    className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-xs cursor-pointer shadow-xs"
                   >
-                    Try Another Number
+                    Try Another Email / Mobile Number
                   </button>
                 </div>
               )}
@@ -311,73 +322,73 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-serif font-bold text-[#8B5E3C] mb-2">
-                      Account Not Activated Yet
+                      Account Found – Quick Activation Needed
                     </h3>
-                    <p className="text-sm text-[#6A5B4D] leading-relaxed">
-                      Your family is enrolled in our census database, but your online portal account is not yet activated. Please activate your account using your mobile number and OTP.
+                    <p className="text-xs text-[#6A5B4D] leading-relaxed">
+                      Great news! Your family is already enrolled in our census database. Click below to complete a quick 1-minute account activation using your verification OTP code.
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Link
-                      href={`/register?mobile=${mobileNumber}`}
-                      className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-sm flex items-center justify-center text-center"
+                      href={`/register?mobile=${encodeURIComponent(mobileNumber)}`}
+                      className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-xs flex items-center justify-center text-center shadow-xs"
                     >
-                      Go to Registration / Activation
+                      Activate Online Account Now
                     </Link>
                     <button
                       type="button"
                       onClick={() => setMobileStatus('IDLE')}
-                      className="w-full py-2 bg-white border border-[#E5DDD0] text-[#6A5B4D] font-semibold rounded hover:bg-[#FAF7F2] text-sm"
+                      className="w-full py-2 bg-white border border-[#E5DDD0] text-[#6A5B4D] font-semibold rounded hover:bg-[#FAF7F2] text-xs cursor-pointer"
                     >
-                      Change Number
+                      Try Another Email / Mobile
                     </button>
                   </div>
                 </div>
               )}
 
               {mobileStatus === 'UNREGISTERED' && (
-                <div className="space-y-6 py-2">
-                  <div className="w-14 h-14 rounded-full bg-red-50 border border-red-300 flex items-center justify-center mx-auto text-red-600">
+                <div className="space-y-5 py-2">
+                  <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center mx-auto text-amber-700">
                     <AlertCircle className="w-7 h-7" />
                   </div>
                   
                   <div className="text-center">
-                    <h3 className="text-lg font-serif font-bold text-[#8B5E3C] mb-2">
-                      Mobile Number Not Found
+                    <h3 className="text-base font-serif font-bold text-[#8B5E3C] mb-1.5">
+                      Record Not Found in Census Database
                     </h3>
                     <p className="text-xs text-[#6A5B4D] leading-relaxed">
-                      We couldn't find this mobile number in our census records. This usually happens in one of two cases:
+                      We couldn't locate an active census record for <span className="font-semibold text-[#2D2D2D]">{mobileNumber || 'this entry'}</span>.
                     </p>
                   </div>
 
-                  <div className="space-y-3 bg-[#FAF7F2] p-4 rounded border border-[#E5DDD0] text-[11px] text-[#6A5B4D] text-left">
+                  <div className="space-y-3 bg-[#FAF7F2] p-4 rounded border border-[#E5DDD0] text-xs text-[#6A5B4D] text-left">
                     <div>
-                      <span className="font-bold text-[#8B5E3C]">1. Are you a Family Member?</span>
-                      <p className="mt-1 pl-3">
-                        Please contact your Family Head and ask them to log in using their registered number. They can add or update your mobile number inside the family record.
+                      <span className="font-bold text-[#8B5E3C] block mb-0.5">1. Are you a Family Member?</span>
+                      <p className="text-[11px] leading-normal">
+                        Please ask your Family Head to log in using their registered email or phone. They can view and update member records directly.
                       </p>
                     </div>
-                    <div className="border-t border-[#E5DDD0] pt-2">
-                      <span className="font-bold text-[#8B5E3C]">2. Are you the Family Head of a new NRI Family?</span>
-                      <p className="mt-1 pl-3">
-                        If you are the Family Head of an NRI family not yet in our database, you can submit an enrollment request to the NRI Admin.
+                    <div className="border-t border-[#E5DDD0] pt-2.5">
+                      <span className="font-bold text-[#8B5E3C] block mb-0.5">2. Are you the Head of an unregistered family?</span>
+                      <p className="text-[11px] leading-normal">
+                        If your family is not yet enrolled in our Samaj census, you can submit a family registration request.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 pt-1">
                     <Link
                       href="/register"
-                      className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-sm flex items-center justify-center text-center"
+                      className="w-full py-2.5 bg-[#8B5E3C] text-white font-semibold rounded hover:bg-[#704A2E] text-xs flex items-center justify-center text-center shadow-xs"
                     >
-                      Request Family Enrollment
+                      Submit New Family Registration
                     </Link>
                     <button
                       type="button"
                       onClick={() => setMobileStatus('IDLE')}
-                      className="w-full py-2 bg-white border border-[#E5DDD0] text-[#6A5B4D] font-semibold rounded hover:bg-[#FAF7F2] text-sm"
+                      className="w-full py-2 bg-white border border-[#E5DDD0] text-[#6A5B4D] font-semibold rounded hover:bg-[#FAF7F2] text-xs cursor-pointer"
                     >
-                      Try Another Number
+                      Try Another Email / Mobile Number
                     </button>
                   </div>
                 </div>
