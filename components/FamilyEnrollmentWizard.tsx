@@ -42,15 +42,16 @@ export default function FamilyEnrollmentWizard({
 
   // Step 1: Head & Location State
   const [headName, setHeadName] = useState('');
-  const [country, setCountry] = useState('India');
+  const [country, setCountry] = useState('Kenya');
   const [customCountry, setCustomCountry] = useState('');
   const [city, setCity] = useState('');
   const [nativeVillage, setNativeVillage] = useState('');
   const [address, setAddress] = useState('');
   
   // Phone & Dial Code
-  const [dialCode, setDialCode] = useState('+91');
-  const [rawPhone, setRawPhone] = useState(userMobile?.replace(/^\+?91/, '') || '');
+  const [dialCode, setDialCode] = useState('+254');
+  const [customDialCode, setCustomDialCode] = useState('+');
+  const [rawPhone, setRawPhone] = useState(userMobile?.replace(/^\+?91/, '').replace(/^\+?254/, '') || '');
   const [email, setEmail] = useState(userEmail || '');
   
   // Optional Ghatak & Pradeshik
@@ -85,7 +86,8 @@ export default function FamilyEnrollmentWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const effectiveCountry = country === 'Other' ? customCountry.trim() : country;
-  const fullMobile = `${dialCode} ${rawPhone.trim()}`.trim();
+  const effectiveDialCode = dialCode === 'CUSTOM' ? customDialCode.trim() : dialCode;
+  const fullMobile = `${effectiveDialCode} ${rawPhone.trim()}`.trim();
 
   const handleAddMember = () => {
     if (!newMember.name.trim()) {
@@ -307,24 +309,38 @@ export default function FamilyEnrollmentWizard({
             {/* Mobile with Country Dial Code Selector */}
             <div>
               <label className="block font-bold text-[#6A5B4D] mb-1.5 uppercase text-[10px]">
-                Mobile Number with Country Code *
+                Mobile Number with Country Dial Code *
               </label>
               <div className="flex gap-2">
                 <select
                   value={dialCode}
-                  onChange={(e) => setDialCode(e.target.value)}
-                  className="p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C]"
+                  onChange={(e) => {
+                    setDialCode(e.target.value);
+                    if (e.target.value === 'CUSTOM') {
+                      setCustomDialCode('+');
+                    }
+                  }}
+                  className="p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none"
                 >
                   {majorCountries.map((c) => (
                     <option key={c.code} value={c.dialCode}>
                       {c.flag} {c.dialCode} ({c.code})
                     </option>
                   ))}
-                  <option value="+1">+1 (US/CA)</option>
-                  <option value="+44">+44 (UK)</option>
-                  <option value="+254">+254 (KE)</option>
-                  <option value="+971">+971 (UAE)</option>
+                  <option value="CUSTOM">🌐 Other / Custom Code</option>
                 </select>
+
+                {dialCode === 'CUSTOM' && (
+                  <input
+                    type="text"
+                    required
+                    value={customDialCode}
+                    onChange={(e) => setCustomDialCode(e.target.value)}
+                    placeholder="+254"
+                    className="w-24 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none focus:border-[#8B5E3C]"
+                  />
+                )}
+
                 <input
                   type="tel"
                   required

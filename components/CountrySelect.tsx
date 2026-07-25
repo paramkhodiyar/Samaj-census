@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import CustomDropdown from './CustomDropdown';
 import { Globe } from 'lucide-react';
 
@@ -11,8 +11,8 @@ export interface CountryItem {
   dialCode: string;
 }
 
+// NRI Countries (Excluding India)
 export const majorCountries: CountryItem[] = [
-  { name: 'India', code: 'IN', flag: '🇮🇳', dialCode: '+91' },
   { name: 'Kenya', code: 'KE', flag: '🇰🇪', dialCode: '+254' },
   { name: 'United States', code: 'US', flag: '🇺🇸', dialCode: '+1' },
   { name: 'United Kingdom', code: 'GB', flag: '🇬🇧', dialCode: '+44' },
@@ -48,9 +48,9 @@ export default function CountrySelect({
   const options = [
     ...majorCountries.map((c) => ({
       value: c.name,
-      label: `${c.flag} ${c.name} (${c.dialCode})`,
+      label: `${c.flag} ${c.name}`,
     })),
-    { value: 'Other', label: '🌐 Other (Specify Custom Country)' },
+    { value: 'Other', label: '🌐 Other (Type Custom Country Name)' },
   ];
 
   const handleSelect = (val: string) => {
@@ -67,22 +67,22 @@ export default function CountrySelect({
         options={options}
         value={value}
         onChange={handleSelect}
-        placeholder="Select Country with Flag"
+        placeholder="Select NRI Country of Residence"
         searchable={true}
         required={required}
       />
 
       {value === 'Other' && (
-        <div className="pt-1">
+        <div className="pt-1 animate-in fade-in duration-200">
           <div className="relative">
-            <Globe className="w-3.5 h-3.5 text-[#8B5E3C] absolute left-3 top-3" />
+            <Globe className="w-4 h-4 text-[#8B5E3C] absolute left-3 top-3" />
             <input
               type="text"
               required={required}
-              placeholder="Type your Country name..."
+              placeholder="Enter your custom country name..."
               value={customCountry}
               onChange={(e) => onChange('Other', e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-[#FAF7F2] border border-[#E5DDD0] rounded text-xs focus:outline-none focus:border-[#8B5E3C]"
+              className="w-full pl-9 pr-3 py-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8B5E3C]"
             />
           </div>
         </div>
