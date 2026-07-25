@@ -34,22 +34,22 @@ async function seedUsers() {
   const usersToSeed: SeedUserConfig[] = [
     {
       email: 'param.khodiyar2024@nst.rishihood.edu.in',
-      mobileNumber: '919999999901',
+      mobileNumber: '919000000001',
       role: 'SUPER_ADMIN',
     },
     {
       email: 'whatsappbackupparam@gmail.com',
-      mobileNumber: '919999999902',
+      mobileNumber: '919000000002',
       role: 'NRI_ADMIN',
     },
     {
       email: 'paramkhodiyar1008@gmail.com',
-      mobileNumber: '919999999903',
+      mobileNumber: '919000001008',
       role: 'USER',
     },
   ];
 
-  console.log('[SEED] Starting user accounts seeding...\n');
+  console.log('[SEED] Starting clean user accounts seeding...\n');
 
   for (const target of usersToSeed) {
     const existingByEmail = await prisma.user.findUnique({
@@ -61,6 +61,7 @@ async function seedUsers() {
       user = await prisma.user.update({
         where: { email: target.email },
         data: {
+          mobileNumber: target.mobileNumber,
           role: target.role,
           isVerified: true,
           consentGivenAt: new Date(),

@@ -320,15 +320,21 @@ export async function sendOtpAction(mobileNumber: string) {
 
     // Make sure registered users with role 'USER' are not non-head members
     if (user && user.role === 'USER') {
-      const isNonHead = (await prisma.member.findFirst({
-        where: {
-          OR: [{ email: cleanEmail }, { mobile: cleanInput }],
-          NOT: { relation: 'Head' },
-        },
-      })) !== null;
+      const isAccountHolder =
+        (user.email && user.email.toLowerCase() === cleanEmail) ||
+        user.mobileNumber === cleanInput;
 
-      if (isNonHead) {
-        return { error: 'BLOCKED_NON_HEAD' };
+      if (!isAccountHolder) {
+        const isNonHead = (await prisma.member.findFirst({
+          where: {
+            OR: [{ email: cleanEmail }, { mobile: cleanInput }],
+            NOT: { relation: 'Head' },
+          },
+        })) !== null;
+
+        if (isNonHead) {
+          return { error: 'BLOCKED_NON_HEAD' };
+        }
       }
     }
 
@@ -556,15 +562,21 @@ export async function loginOtpAction(prevState: any, formData: FormData) {
     } else {
       // Verify role constraint for existing user
       if (user.role === 'USER') {
-        const isNonHead = (await prisma.member.findFirst({
-          where: {
-            OR: [{ email: mobileNumber }, { mobile: mobileNumber }],
-            NOT: { relation: 'Head' },
-          },
-        })) !== null;
+        const isAccountHolder =
+          (user.email && user.email.toLowerCase() === cleanEmail) ||
+          user.mobileNumber === cleanInput;
 
-        if (isNonHead) {
-          return { error: 'BLOCKED_NON_HEAD' };
+        if (!isAccountHolder) {
+          const isNonHead = (await prisma.member.findFirst({
+            where: {
+              OR: [{ email: cleanEmail }, { mobile: cleanInput }],
+              NOT: { relation: 'Head' },
+            },
+          })) !== null;
+
+          if (isNonHead) {
+            return { error: 'BLOCKED_NON_HEAD' };
+          }
         }
       }
 
