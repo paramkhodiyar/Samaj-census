@@ -31,6 +31,27 @@ export default async function CreateFamilyPage() {
     redirect('/dashboard/family');
   }
 
+  // Fetch corresponding approved join request to auto-fill wizard details
+  const joinRequest = await prisma.joinRequest.findFirst({
+    where: {
+      OR: [
+        { mobileNumber: user.mobileNumber },
+        { email: user.email || undefined },
+      ],
+      status: 'APPROVED',
+    },
+  });
+
+  const initialData = joinRequest ? {
+    headName: joinRequest.fullName,
+    mobile: joinRequest.mobileNumber,
+    email: joinRequest.email,
+    country: joinRequest.country,
+    city: joinRequest.city,
+    indiaHometown: joinRequest.indiaHometown,
+    kutchVillage: joinRequest.kutchVillage,
+  } : null;
+
   // Fetch Pradeshiks and Ghataks for community cluster selection
   const pradeshiks = await prisma.pradeshik.findMany({
     select: { id: true, name: true, code: true },
@@ -49,6 +70,7 @@ export default async function CreateFamilyPage() {
         userMobile={user.mobileNumber}
         pradeshiks={pradeshiks}
         ghataks={ghataks}
+        initialData={initialData}
       />
     </div>
   );

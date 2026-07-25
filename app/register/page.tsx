@@ -7,6 +7,7 @@ import { useTranslation } from '@/context/I18nContext';
 import { submitJoinRequestAction } from '@/app/actions/join-request';
 import { registerAction, sendOtpAction } from '@/app/actions/auth';
 import CustomDropdown from '@/components/CustomDropdown';
+import { majorCountries } from '@/components/CountrySelect';
 import { 
   Phone, 
   Globe, 
@@ -94,7 +95,9 @@ function RegisterPageContent() {
 
   // 2. New Family Enrollment States
   const [fullName, setFullName] = useState('');
-  const [enrollMobile, setEnrollMobile] = useState('');
+  const [dialCode, setDialCode] = useState('+254');
+  const [customDialCode, setCustomDialCode] = useState('+');
+  const [rawMobile, setRawMobile] = useState('');
   const [email, setEmail] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [customCountry, setCustomCountry] = useState('');
@@ -116,8 +119,10 @@ function RegisterPageContent() {
 
     const countryVal = selectedCountry === 'other' ? customCountry : selectedCountry;
     const cityVal = selectedCountry === 'other' ? customCity : (selectedCity === 'other' ? customCity : selectedCity);
+    const activeDialCode = dialCode === 'CUSTOM' ? customDialCode : dialCode;
+    const finalMobile = `${activeDialCode} ${rawMobile.trim()}`.trim();
 
-    if (!fullName || !enrollMobile || !email || !countryVal || !cityVal || !selectedVillage) {
+    if (!fullName || !rawMobile || !email || !countryVal || !cityVal || !selectedVillage) {
       toast.error('Please fill in all required fields.');
       return;
     }
@@ -125,7 +130,7 @@ function RegisterPageContent() {
     setIsSendingJoin(true);
     const result = await submitJoinRequestAction({
       fullName,
-      mobileNumber: enrollMobile,
+      mobileNumber: finalMobile,
       email,
       country: countryVal,
       city: cityVal,
@@ -339,19 +344,73 @@ function RegisterPageContent() {
                       <label className="block text-xs font-bold uppercase tracking-wider text-[#6A5B4D] mb-1.5">
                         Mobile Number <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
-                          <Phone className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="tel"
-                          required
-                          placeholder="e.g. +254736900101"
-                          value={enrollMobile}
-                          onChange={(e) => setEnrollMobile(e.target.value)}
-                          className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
-                        />
-                      </div>
+                      
+                      {dialCode !== 'CUSTOM' ? (
+                        <div className="flex gap-2">
+                          <div className="w-36 shrink-0">
+                            <CustomDropdown
+                              options={[
+                                ...majorCountries.map((c) => ({ value: c.dialCode, label: `${c.flag} ${c.dialCode} (${c.code})` })),
+                                { value: 'CUSTOM', label: '🌐 Other Code' },
+                              ]}
+                              value={dialCode}
+                              onChange={(val) => {
+                                setDialCode(val);
+                                if (val === 'CUSTOM') setCustomDialCode('+');
+                              }}
+                              placeholder="Dial Code"
+                              searchable
+                            />
+                          </div>
+                          <div className="relative flex-1">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
+                              <Phone className="w-4 h-4" />
+                            </span>
+                            <input
+                              type="tel"
+                              required
+                              placeholder="e.g. 736900101"
+                              value={rawMobile}
+                              onChange={(e) => setRawMobile(e.target.value.replace(/\D/g, ''))}
+                              className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. +44"
+                            value={customDialCode}
+                            onChange={(e) => setCustomDialCode(e.target.value)}
+                            className="w-20 p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-md text-sm font-bold text-[#8B5E3C] text-center focus:outline-none"
+                          />
+                          <div className="relative flex-1">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#6A5B4D]/70">
+                              <Phone className="w-4 h-4" />
+                            </span>
+                            <input
+                              type="tel"
+                              required
+                              placeholder="e.g. 736900101"
+                              value={rawMobile}
+                              onChange={(e) => setRawMobile(e.target.value.replace(/\D/g, ''))}
+                              className="pl-10 pr-4 py-2.5 w-full bg-[#FAF7F2] border border-[#E5DDD0] rounded-md focus:outline-none focus:border-[#8B5E3C] text-sm font-medium"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDialCode(majorCountries[0].dialCode);
+                              setCustomDialCode('+');
+                            }}
+                            className="text-[10px] font-bold text-[#8B5E3C] hover:underline whitespace-nowrap px-1"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 

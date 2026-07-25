@@ -29,6 +29,15 @@ interface FamilyEnrollmentWizardProps {
   userMobile?: string | null;
   ghataks?: Array<{ id: string; name: string; code: string; pradeshikId: string }>;
   pradeshiks?: Array<{ id: string; name: string; code: string }>;
+  initialData?: {
+    headName: string;
+    mobile: string;
+    email: string;
+    country: string;
+    city: string;
+    indiaHometown: string | null;
+    kutchVillage: string;
+  } | null;
 }
 
 export default function FamilyEnrollmentWizard({
@@ -36,28 +45,59 @@ export default function FamilyEnrollmentWizard({
   userMobile,
   ghataks = [],
   pradeshiks = [],
+  initialData = null,
 }: FamilyEnrollmentWizardProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
-  // Step 1: Head & Location State
-  const [headName, setHeadName] = useState('');
+  // Step 1: Head & Location State (auto-filled if initialData is provided)
+  const [headName, setHeadName] = useState(initialData?.headName || '');
   const [headAge, setHeadAge] = useState<number>(35);
   const [headGender, setHeadGender] = useState<'MALE' | 'FEMALE' | 'OTHER'>('MALE');
   const [headOccupation, setHeadOccupation] = useState('Business');
   const [headEducation, setHeadEducation] = useState('Graduate');
   const [headBloodGroup, setHeadBloodGroup] = useState('O+');
-  const [country, setCountry] = useState('Kenya');
+  const [country, setCountry] = useState(initialData?.country || 'Kenya');
   const [customCountry, setCustomCountry] = useState('');
-  const [city, setCity] = useState('');
-  const [nativeVillage, setNativeVillage] = useState('');
-  const [address, setAddress] = useState('');
+  const [city, setCity] = useState(initialData?.city || '');
+  const [nativeVillage, setNativeVillage] = useState(initialData?.kutchVillage || '');
+  const [address, setAddress] = useState(initialData ? `${initialData.city}, ${initialData.country}` : '');
   
-  // Phone & Dial Code
-  const [dialCode, setDialCode] = useState('+254');
-  const [customDialCode, setCustomDialCode] = useState('+');
-  const [rawPhone, setRawPhone] = useState(userMobile?.replace(/^\+?91/, '').replace(/^\+?254/, '') || '');
-  const [email, setEmail] = useState(userEmail || '');
+  // Phone & Dial Code Parser
+  const getParsedPhoneAndDial = () => {
+    const rawInputPhone = initialData?.mobile || userMobile || '';
+    const cleanPhone = rawInputPhone.trim();
+    // Try to match with any known dial code from majorCountries
+    const matched = majorCountries.find(c => cleanPhone.startsWith(c.dialCode));
+    if (matched) {
+      return {
+        dc: matched.dialCode,
+        phone: cleanPhone.substring(matched.dialCode.length).trim()
+      };
+    }
+    // Check if starts with custom + sign
+    if (cleanPhone.startsWith('+')) {
+      const spaceIdx = cleanPhone.indexOf(' ');
+      if (spaceIdx > 0) {
+        return {
+          dc: 'CUSTOM',
+          custDc: cleanPhone.substring(0, spaceIdx),
+          phone: cleanPhone.substring(spaceIdx + 1).trim()
+        };
+      }
+    }
+    return {
+      dc: '+254',
+      phone: cleanPhone.replace(/^\+?91/, '').replace(/^\+?254/, '').trim()
+    };
+  };
+
+  const parsedPhoneDetails = getParsedPhoneAndDial();
+
+  const [dialCode, setDialCode] = useState(parsedPhoneDetails.dc);
+  const [customDialCode, setCustomDialCode] = useState(parsedPhoneDetails.dc === 'CUSTOM' ? (parsedPhoneDetails.custDc || '+') : '+');
+  const [rawPhone, setRawPhone] = useState(parsedPhoneDetails.phone);
+  const [email, setEmail] = useState(initialData?.email || userEmail || '');
   
   // Optional Ghatak & Pradeshik
   const [selectedGhatakId, setSelectedGhatakId] = useState('');
