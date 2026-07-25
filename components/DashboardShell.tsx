@@ -42,18 +42,26 @@ export default function DashboardShell({ session, children }: DashboardShellProp
   const { language, setLanguage, t } = useTranslation();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   
-  // Rotating greeting state
+  // Rotating greeting state with premium slide-up ticker animation
   const [greetingIndex, setGreetingIndex] = useState(0);
-  const [isFading, setIsFading] = useState(false);
+  const [animClass, setAnimClass] = useState('translate-y-0 opacity-100');
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setIsFading(true);
+      // 1. Slide UP and fade out (exit transition)
+      setAnimClass('-translate-y-full opacity-0 transition-all duration-400 ease-in');
+      
       setTimeout(() => {
+        // 2. Teleport to bottom instantly while invisible
         setGreetingIndex((prev) => (prev + 1) % GREETING_LISTS.en.length);
-        setIsFading(false);
-      }, 250);
-    }, 3800);
+        setAnimClass('translate-y-full opacity-0');
+        
+        // 3. Slide up to center and fade in (enter transition)
+        setTimeout(() => {
+          setAnimClass('translate-y-0 opacity-100 transition-all duration-400 ease-out');
+        }, 30);
+      }, 400);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, []);
@@ -165,10 +173,15 @@ export default function DashboardShell({ session, children }: DashboardShellProp
           <div className="flex items-center gap-3">
             {/* Animated Dynamic Indian Greeting Card */}
             <div className="hidden sm:flex items-center">
-              <div className="bg-[#FAF7F2] px-3.5 py-1.5 rounded-full border border-[#E5DDD0] text-xs font-serif font-bold text-[#8B5E3C] flex items-center gap-2 overflow-hidden shadow-2xs">
-                <span className="text-sm shrink-0">🙏</span>
-                <div className={`transition-all duration-300 transform ${isFading ? 'opacity-0 -translate-y-1 scale-95' : 'opacity-100 translate-y-0 scale-100'}`}>
-                  {GREETING_LISTS[language as keyof typeof GREETING_LISTS]?.[greetingIndex] || GREETING_LISTS.en[greetingIndex]}, {session.userName || 'Member'}
+              <div className="border-l-2 border-[#8B5E3C] bg-[#FAF7F2]/80 px-3 py-1.5 text-xs font-serif font-bold text-[#8B5E3C] flex items-center gap-2 overflow-hidden shadow-2xs rounded-r-md">
+                <svg className="w-4 h-4 text-[#8B5E3C] shrink-0" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path className="animate-pulse origin-bottom" d="M12 2c-.5 1.5-2 3.5-2 5.5s1.5 3.5 2 3.5 2-1.5 2-3.5S12.5 3.5 12 2z" />
+                  <path d="M4 14c0 3.866 3.582 7 8 7s8-3.134 8-7c0-1.8-1.5-3.5-3-4.5-1.5-1-3-1.5-5-1.5s-3.5.5-5 1.5c-1.5 1-3 2.7-3 4.5z" />
+                </svg>
+                <div className="h-4 overflow-hidden relative min-w-[140px] md:min-w-[170px]">
+                  <div className={`absolute transform ${animClass}`}>
+                    {GREETING_LISTS[language as keyof typeof GREETING_LISTS]?.[greetingIndex] || GREETING_LISTS.en[greetingIndex]}, {session.userName || 'Member'}
+                  </div>
                 </div>
               </div>
             </div>
