@@ -6,6 +6,7 @@ import { useTranslation } from '@/context/I18nContext';
 import { submitCorrectionRequest } from '@/app/actions/requests';
 import { toast } from 'sonner';
 import { useConfirm } from '@/context/ConfirmContext';
+import CustomDropdown from '@/components/CustomDropdown';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -409,46 +410,41 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
 
                 <div>
                   <label className="block font-bold text-[#6A5B4D] mb-1">Relation to Head</label>
-                  <select
+                  <CustomDropdown
+                    options={['Wife', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister']}
                     value={newMemberForm.relation}
-                    onChange={(e) => setNewMemberForm({ ...newMemberForm, relation: e.target.value })}
-                    className="px-3 py-2 w-full bg-white border border-[#E5DDD0] rounded focus:outline-none focus:ring-1 focus:ring-[#8B5E3C]"
-                  >
-                    <option value="Wife">Wife</option>
-                    <option value="Son">Son</option>
-                    <option value="Daughter">Daughter</option>
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Brother">Brother</option>
-                    <option value="Sister">Sister</option>
-                  </select>
+                    onChange={(val) => setNewMemberForm({ ...newMemberForm, relation: val })}
+                    placeholder="Select Relation"
+                  />
                 </div>
 
                 <div>
                   <label className="block font-bold text-[#6A5B4D] mb-1">Gender</label>
-                  <select
+                  <CustomDropdown
+                    options={[
+                      { value: 'MALE', label: 'Male' },
+                      { value: 'FEMALE', label: 'Female' },
+                      { value: 'OTHER', label: 'Other' },
+                    ]}
                     value={newMemberForm.gender}
-                    onChange={(e) => setNewMemberForm({ ...newMemberForm, gender: e.target.value as any })}
-                    className="px-3 py-2 w-full bg-white border border-[#E5DDD0] rounded focus:outline-none"
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                  </select>
+                    onChange={(val) => setNewMemberForm({ ...newMemberForm, gender: val as any })}
+                    placeholder="Select Gender"
+                  />
                 </div>
 
                 <div>
                   <label className="block font-bold text-[#6A5B4D] mb-1">Marital Status</label>
-                  <select
+                  <CustomDropdown
+                    options={[
+                      { value: 'SINGLE', label: 'Single' },
+                      { value: 'MARRIED', label: 'Married' },
+                      { value: 'DIVORCED', label: 'Divorced' },
+                      { value: 'WIDOWED', label: 'Widowed' },
+                    ]}
                     value={newMemberForm.maritalStatus}
-                    onChange={(e) => setNewMemberForm({ ...newMemberForm, maritalStatus: e.target.value })}
-                    className="px-3 py-2 w-full bg-white border border-[#E5DDD0] rounded focus:outline-none"
-                  >
-                    <option value="SINGLE">Single</option>
-                    <option value="MARRIED">Married</option>
-                    <option value="DIVORCED">Divorced</option>
-                    <option value="WIDOWED">Widowed</option>
-                  </select>
+                    onChange={(val) => setNewMemberForm({ ...newMemberForm, maritalStatus: val })}
+                    placeholder="Select Status"
+                  />
                 </div>
 
                 <div>
@@ -691,40 +687,38 @@ export default function EditFamilyWizard({ family, userId }: EditFamilyWizardPro
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block font-bold text-[#6A5B4D] mb-1.5">Select Family Member</label>
-                    <select
+                    <CustomDropdown
+                      options={[
+                        { value: '', label: '-- Choose Member --' },
+                        ...family.members.map((m) => ({ value: m.id, label: `${m.name} (${m.relation})` })),
+                      ]}
                       value={selectedCorrMemberId}
-                      onChange={(e) => {
-                        setSelectedCorrMemberId(e.target.value);
+                      onChange={(val) => {
+                        setSelectedCorrMemberId(val);
                         setCorrNewValue('');
                       }}
-                      className="px-2.5 py-1.5 w-full bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none"
-                    >
-                      <option value="">-- Choose Member --</option>
-                      {family.members.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.relation})
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="-- Choose Member --"
+                    />
                   </div>
 
                   <div>
                     <label className="block font-bold text-[#6A5B4D] mb-1.5">Select Field to Correct</label>
-                    <select
+                    <CustomDropdown
+                      options={[
+                        { value: 'name', label: 'Full Name' },
+                        { value: 'age', label: 'Age' },
+                        { value: 'occupation', label: 'Occupation' },
+                        { value: 'education', label: 'Education' },
+                        { value: 'bloodGroup', label: 'Blood Group' },
+                        { value: 'mobile', label: 'Mobile Number' },
+                      ]}
                       value={selectedCorrField}
-                      onChange={(e) => {
-                        setSelectedCorrField(e.target.value);
+                      onChange={(val) => {
+                        setSelectedCorrField(val);
                         setCorrNewValue('');
                       }}
-                      className="px-2.5 py-1.5 w-full bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none"
-                    >
-                      <option value="name">Full Name</option>
-                      <option value="age">Age</option>
-                      <option value="occupation">Occupation</option>
-                      <option value="education">Education</option>
-                      <option value="bloodGroup">Blood Group</option>
-                      <option value="mobile">Mobile Number</option>
-                    </select>
+                      placeholder="Select Field"
+                    />
                   </div>
                 </div>
 

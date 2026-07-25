@@ -6,6 +6,7 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { updateUserRoleAction } from '@/app/actions/admin-users';
 import { Role } from '@prisma/client';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/CustomDropdown';
 import { Search, Shield, UserCheck, CheckCircle2, ChevronLeft, ChevronRight, UserCog } from 'lucide-react';
 
 interface GhatakOption {
@@ -334,17 +335,18 @@ export default function AdminUsersClient({
                 <label className="block text-xs font-bold text-[#6A5B4D] mb-1.5 uppercase">
                   Select New Role
                 </label>
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: 'USER', label: 'USER (Family Head)' },
+                    { value: 'GHATAK_ADMIN', label: 'GHATAK_ADMIN (Local Cluster Admin)' },
+                    { value: 'PRADESHIK_ADMIN', label: 'PRADESHIK_ADMIN (State/Region Admin)' },
+                    { value: 'NRI_ADMIN', label: 'NRI_ADMIN (International Families Admin)' },
+                    { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN (Global System Administrator)' },
+                  ]}
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as Role)}
-                  className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded text-xs font-semibold text-[#8B5E3C] focus:outline-none focus:border-[#8B5E3C]"
-                >
-                  <option value="USER">USER (Family Head)</option>
-                  <option value="GHATAK_ADMIN">GHATAK_ADMIN (Local Cluster Admin)</option>
-                  <option value="PRADESHIK_ADMIN">PRADESHIK_ADMIN (State/Region Admin)</option>
-                  <option value="NRI_ADMIN">NRI_ADMIN (International Families Admin)</option>
-                  <option value="SUPER_ADMIN">SUPER_ADMIN (Global System Administrator)</option>
-                </select>
+                  onChange={(val) => setNewRole(val as Role)}
+                  placeholder="Select Role"
+                />
               </div>
 
               {/* Jurisdiction Dropdowns */}
@@ -353,17 +355,13 @@ export default function AdminUsersClient({
                   <label className="block text-xs font-bold text-[#6A5B4D] mb-1.5 uppercase">
                     Assign Ghatak Cluster <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={ghataks.map((g) => ({ value: g.id, label: g.name }))}
                     value={selectedGhatakId}
-                    onChange={(e) => setSelectedGhatakId(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded text-xs font-medium text-[#2D2D2D] focus:outline-none focus:border-[#8B5E3C]"
-                  >
-                    {ghataks.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedGhatakId}
+                    placeholder="Select Ghatak"
+                    searchable
+                  />
                 </div>
               )}
 
@@ -372,17 +370,13 @@ export default function AdminUsersClient({
                   <label className="block text-xs font-bold text-[#6A5B4D] mb-1.5 uppercase">
                     Assign Pradeshik Region <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={pradeshiks.map((p) => ({ value: p.id, label: p.name }))}
                     value={selectedPradeshikId}
-                    onChange={(e) => setSelectedPradeshikId(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-[#E5DDD0] rounded text-xs font-medium text-[#2D2D2D] focus:outline-none focus:border-[#8B5E3C]"
-                  >
-                    {pradeshiks.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedPradeshikId}
+                    placeholder="Select Pradeshik"
+                    searchable
+                  />
                 </div>
               )}
 

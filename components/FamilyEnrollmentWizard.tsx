@@ -385,23 +385,21 @@ export default function FamilyEnrollmentWizard({
               </label>
               {dialCode !== 'CUSTOM' ? (
                 <div className="flex gap-2 min-w-0">
-                  <select
-                    value={dialCode}
-                    onChange={(e) => {
-                      setDialCode(e.target.value);
-                      if (e.target.value === 'CUSTOM') {
-                        setCustomDialCode('+');
-                      }
-                    }}
-                    className="w-32 sm:w-36 shrink-0 p-3 bg-white border border-[#E5DDD0] rounded-lg text-xs font-bold text-[#8B5E3C] focus:outline-none truncate"
-                  >
-                    {majorCountries.map((c) => (
-                      <option key={c.code} value={c.dialCode}>
-                        {c.flag} {c.dialCode} ({c.code})
-                      </option>
-                    ))}
-                    <option value="CUSTOM">🌐 Other Code</option>
-                  </select>
+                  <div className="w-44 shrink-0">
+                    <CustomDropdown
+                      options={[
+                        ...majorCountries.map((c) => ({ value: c.dialCode, label: `${c.flag} ${c.dialCode} (${c.code})` })),
+                        { value: 'CUSTOM', label: '🌐 Other Code' },
+                      ]}
+                      value={dialCode}
+                      onChange={(val) => {
+                        setDialCode(val);
+                        if (val === 'CUSTOM') setCustomDialCode('+');
+                      }}
+                      placeholder="Dial Code"
+                      searchable
+                    />
+                  </div>
                   <input
                     type="tel"
                     required

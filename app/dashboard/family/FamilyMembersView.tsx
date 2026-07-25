@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { submitSingleMemberQuickEditAction } from '@/app/actions/requests';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/CustomDropdown';
 
 type Member = {
   id: string;
@@ -503,31 +504,27 @@ export default function FamilyMembersView({
                   <label className="block text-[11px] font-bold uppercase text-[#6A5B4D] mb-1">
                     Blood Group
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
                     value={editBloodGroup}
-                    onChange={(e) => setEditBloodGroup(e.target.value)}
-                    className="w-full p-2 bg-[#FAF7F2] border border-[#E5DDD0] rounded text-xs font-semibold text-[#8B5E3C] focus:outline-none focus:border-[#8B5E3C]"
-                  >
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
-                      <option key={bg} value={bg}>
-                        {bg}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setEditBloodGroup}
+                    placeholder="Blood Group"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#6A5B4D] mb-1">
                     Vital Status
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={[
+                      { value: 'ALIVE', label: 'Alive' },
+                      { value: 'DECEASED', label: 'Deceased' },
+                    ]}
                     value={editIsAlive ? 'ALIVE' : 'DECEASED'}
-                    onChange={(e) => setEditIsAlive(e.target.value === 'ALIVE')}
-                    className="w-full p-2 bg-[#FAF7F2] border border-[#E5DDD0] rounded text-xs font-semibold text-[#2D2D2D] focus:outline-none focus:border-[#8B5E3C]"
-                  >
-                    <option value="ALIVE">Alive</option>
-                    <option value="DECEASED">Deceased</option>
-                  </select>
+                    onChange={(val) => setEditIsAlive(val === 'ALIVE')}
+                    placeholder="Vital Status"
+                  />
                 </div>
               </div>
 

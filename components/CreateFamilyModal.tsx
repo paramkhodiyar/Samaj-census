@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createFamilyForUserAction } from '@/app/actions/family';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/CustomDropdown';
 import { Home, MapPin, Phone, User, Plus, Trash2, X, CheckCircle, Sparkles } from 'lucide-react';
 
 interface CreateFamilyModalProps {
@@ -233,15 +234,12 @@ export default function CreateFamilyModal({ userEmail, onClose }: CreateFamilyMo
                   onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
                   className="p-2 bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none"
                 />
-                <select
+                <CustomDropdown
+                  options={['Wife', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister']}
                   value={newMember.relation}
-                  onChange={(e) => setNewMember({ ...newMember, relation: e.target.value })}
-                  className="p-2 bg-white border border-[#E5DDD0] rounded text-xs font-semibold text-[#8B5E3C]"
-                >
-                  {['Wife', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'].map((rel) => (
-                    <option key={rel} value={rel}>{rel}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewMember({ ...newMember, relation: val })}
+                  placeholder="Relation"
+                />
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -250,14 +248,18 @@ export default function CreateFamilyModal({ userEmail, onClose }: CreateFamilyMo
                     onChange={(e) => setNewMember({ ...newMember, age: parseInt(e.target.value, 10) || 0 })}
                     className="w-20 p-2 bg-white border border-[#E5DDD0] rounded text-xs focus:outline-none"
                   />
-                  <select
-                    value={newMember.gender}
-                    onChange={(e) => setNewMember({ ...newMember, gender: e.target.value as any })}
-                    className="flex-1 p-2 bg-white border border-[#E5DDD0] rounded text-xs"
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                  </select>
+                  <div className="flex-1">
+                    <CustomDropdown
+                      options={[
+                        { value: 'MALE', label: 'Male' },
+                        { value: 'FEMALE', label: 'Female' },
+                        { value: 'OTHER', label: 'Other' },
+                      ]}
+                      value={newMember.gender}
+                      onChange={(val) => setNewMember({ ...newMember, gender: val as any })}
+                      placeholder="Gender"
+                    />
+                  </div>
                 </div>
               </div>
 
