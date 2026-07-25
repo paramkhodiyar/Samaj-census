@@ -283,7 +283,7 @@ export default function LoginPage() {
                 <h4 className="text-xs font-bold text-[#6A5B4D] uppercase tracking-wider mb-3 text-center">
                   Quick Login (Dev Mode)
                 </h4>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <button
                     type="button"
                     onClick={() => {
@@ -303,16 +303,6 @@ export default function LoginPage() {
                     className="py-2.5 px-2 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer text-center text-[11px] truncate shadow-xs transition-colors"
                   >
                     NRI Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileNumber('paramkhodiyar1008@gmail.com');
-                      setOtpSent(false);
-                    }}
-                    className="py-2.5 px-2 border border-[#E5DDD0] hover:border-[#8B5E3C] rounded bg-[#FAF7F2] font-semibold text-[#8B5E3C] cursor-pointer text-center text-[11px] truncate shadow-xs transition-colors"
-                  >
-                    Family User
                   </button>
                 </div>
               </div>
