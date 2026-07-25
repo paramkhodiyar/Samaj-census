@@ -16,9 +16,19 @@ export default function LoginPage() {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
   const [mobileStatus, setMobileStatus] = useState<'IDLE' | 'ACTIVE' | 'BLOCKED_NON_HEAD' | 'NOT_ACTIVATED' | 'UNREGISTERED'>('IDLE');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // OTP Login State
   const [otpState, otpFormAction, isOtpPending] = useActionState(loginOtpAction, null);
+
+  // Timer for Resend OTP Cooldown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (otpState?.error) {
@@ -34,7 +44,7 @@ export default function LoginPage() {
     }
   }, [otpState]);
 
-  // Handle OTP request
+  // Handle initial OTP request
   const handleSendOtp = async () => {
     if (!mobileNumber || mobileNumber.trim().length < 3) {
       toast.error('Please enter a valid mobile number or email address');
@@ -89,8 +99,27 @@ export default function LoginPage() {
     } else if (result?.success) {
       setMobileStatus('ACTIVE');
       setOtpSent(true);
+      setResendCooldown(30);
       const isEmail = mobileNumber.includes('@');
       toast.success(`OTP sent successfully. Please check your ${isEmail ? 'email inbox' : 'WhatsApp'}.`);
+    }
+  };
+
+  // Handle dedicated Resend OTP (bypasses CAPTCHA check since identity is already verified)
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isSendingOtp) return;
+    if (!mobileNumber || mobileNumber.trim().length < 3) return;
+
+    setIsSendingOtp(true);
+    const result = await sendOtpAction(mobileNumber);
+    setIsSendingOtp(false);
+
+    if (result?.error) {
+      toast.error(result.error);
+    } else if (result?.success) {
+      setResendCooldown(30);
+      const isEmail = mobileNumber.includes('@');
+      toast.success(`OTP re-sent successfully via ${isEmail ? 'email' : 'WhatsApp'}.`);
     }
   };
 
@@ -222,10 +251,19 @@ export default function LoginPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={handleSendOtp}
-                        className="text-[#B08968] font-semibold hover:underline"
+                        onClick={handleResendOtp}
+                        disabled={resendCooldown > 0 || isSendingOtp}
+                        className={`font-semibold transition-colors ${
+                          resendCooldown > 0 || isSendingOtp
+                            ? 'text-[#C4A882] cursor-not-allowed'
+                            : 'text-[#8B5E3C] hover:underline cursor-pointer'
+                        }`}
                       >
-                        Resend OTP
+                        {isSendingOtp
+                          ? 'Sending...'
+                          : resendCooldown > 0
+                          ? `Resend OTP (${resendCooldown}s)`
+                          : 'Resend OTP'}
                       </button>
                     </div>
 
